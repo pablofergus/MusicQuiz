@@ -1,0 +1,3 @@
+
+class DeezerApiResponseException(Exception):
+    pass

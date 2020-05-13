@@ -1,0 +1,29 @@
+
+{% block register %}
+
+<div class="modal" tabindex="-1" role="dialog" aria-labelledby="register" aria-hidden="true" id="register">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Register</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="/register/" id="register-form" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {{ rform }}
+                    <!--<input type="text" class="form-control" placeholder="Username" aria-label="username" aria-describedby="username" name="username">
+                    <input type="password" class="form-control" placeholder="Password" aria-label="password" aria-describedby="password" name="password">-->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <input type="submit" value="Register" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock register %}
