@@ -39,9 +39,9 @@ $(document).ready(function() {
         volume = myVolume;
     }
 
-    audioElement.addEventListener('ended', function() {
-            this.play();
-    }, false);
+    //audioElement.addEventListener('ended', function() {
+    //        this.play();
+    //}, false);
 
     audioElement.addEventListener("canplay",function(){
         $("#timer").text(audioElement.duration-1);
@@ -52,7 +52,7 @@ $(document).ready(function() {
     });
 
     audioElement.addEventListener("timeupdate",function(){
-        $("#currentTime").text(Math.floor(30-audioElement.currentTime));
+        $("#currentTime").text(Math.floor(31-audioElement.currentTime));
     });
 
     $('#pause').click(function() {
@@ -75,13 +75,7 @@ $(document).ready(function() {
       //socket.send("I have connected")
     };
 
-    socket.onmessage = function message(event) {
-        var data = JSON.parse(event.data),
-            gameInfo = JSON.parse(data),
-            track = gameInfo.track;
-        console.log(gameInfo); 
-        gameState = gameInfo.game_state;
-
+    function updatePlayers(gameInfo) {
         var userhtml = "";
         for(var i = 0; i < gameInfo.num_players; i++) {
             userhtml += "<div class=\"col-lg-" + String(Math.floor(12/gameInfo.num_players)) + " col-md-6 mb-md-4\">" +
@@ -93,9 +87,18 @@ $(document).ready(function() {
             $("#user-scores").html(userhtml);
             console.log(gameInfo.players[0].points);
         }
+    }
+
+    socket.onmessage = function message(event) {
+        var data = JSON.parse(event.data),
+            gameInfo = JSON.parse(data),
+            track = gameInfo.track;
+        console.log(gameInfo); 
+        gameState = gameInfo.game_state;
 
         switch (gameState) {
             case GAME_STATES.GUESSING:
+                updatePlayers(gameInfo)
                 $("#artist").html("¿¿¿¿¿¿");
                 $("#title").html("??????");
                 $("#track-cover").html("<img src=\"" + track.album.cover + "\"/>");
@@ -106,13 +109,14 @@ $(document).ready(function() {
                 });
                 break;
 
-            case GAME_STATES.POST_ANSWERS:            
+            case GAME_STATES.POST_ANSWERS:
                 userAnswer = $("#useranswer").val();
                 $("#useranswer").val("");
                 socket.send(userAnswer);
                 break;
 
             case GAME_STATES.RESULTS:
+                updatePlayers(gameInfo)
                 $("#artist").html(track.artists[0].name);
                 $("#title").html(track.title);
                 $("#track-cover").html("<img src=\"" + track.album.cover + "\"/>");
@@ -127,6 +131,7 @@ $(document).ready(function() {
                     }
                 });
                 audioElement.setAttribute('src', track.download_url);
+                audioElement.restart()
                 setTimeout(() => { console.log("animated"); }, 2000);
                 $("#track-cover").css({
                     "-webkit-filter": "blur(0px);",

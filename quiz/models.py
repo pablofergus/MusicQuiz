@@ -46,7 +46,6 @@ class Game(models.Model):
     async def update_all_clients(self):
         self.info.save()
         for p in self.info.players.all():
-            #await p.conn.update_game_info(self.info) #TODO
             channel_layer = get_channel_layer()
             await channel_layer.send(
                 p.channel_name,
@@ -60,7 +59,7 @@ class Game(models.Model):
         user = User.objects.filter(username=username).first()
 
         player, created = Player.objects.get_or_create(user=user)
-        self.info = Game.objects.first().info
+        self.info = Game.objects.get(pk=self.id).info
         if not created:
             setattr(player, "channel_name", channel_name)
             setattr(player, "game_id", self.id)
@@ -92,19 +91,19 @@ class Game(models.Model):
                 p.user.song_history.add(Song.objects.filter(download_url=self.info.track.download_url).first())
 
     async def waiting_in_lobby(self):
-        self.info = Game.objects.first().info
+        self.info = Game.objects.get(pk=self.id).info
         await self.update_all_clients()
         self.info.game_state = GameStates.READY
         self.info.save()
 
     async def ready(self):
-        self.info = Game.objects.first().info
+        self.info = Game.objects.get(pk=self.id).info
         await self.update_all_clients()
         self.info.game_state = GameStates.LOADING
         self.info.save()
 
     async def loading(self):
-        self.info = Game.objects.first().info
+        self.info = Game.objects.get(pk=self.id).info
         await self.update_all_clients()
         genres = get_genre_list()
         if self.radio.count() is 0:
@@ -117,7 +116,7 @@ class Game(models.Model):
         self.info.save()
 
     async def guessing(self):
-        self.info = Game.objects.first().info
+        self.info = Game.objects.get(pk=self.id).info
         #TODO: self.track, song = get_random_track() etc...
         self.info.track = self.radio.all().first()
         #print("RADIO SONG: " + self.radio.all().first())
@@ -132,7 +131,7 @@ class Game(models.Model):
         self.info.save()
 
     async def post_answers(self):
-        self.info = Game.objects.first().info
+        self.info = Game.objects.get(pk=self.id).info
         if self.info.num_answers is 0:
             await self.update_all_clients()
             print("STOPPING GAME")
@@ -140,8 +139,8 @@ class Game(models.Model):
             self.save()
             self.info.save()
             await asyncio.sleep(2)
-            if not getattr(Game.objects.first(), 'running'): #TODO
-                print("TIMED OUT" + str(getattr(Game.objects.first(), 'running')))
+            if not getattr(Game.objects.get(pk=self.id), 'running'):
+                print("TIMED OUT" + str(getattr(Game.objects.get(pk=self.id), 'running')))
                 self.info.num_answers = -1
                 self.info.save()
                 return await self.run_after_posted()
@@ -153,8 +152,7 @@ class Game(models.Model):
             self.info.save()
 
     async def results(self):
-        self.info = Game.objects.first().info
-        i = 0
+        self.info = Game.objects.get(pk=self.id).info
         for p in self.info.players.all():
             r1 = fuzz.partial_ratio(self.info.track.title.lower(), p.answer.lower())
             r2 = fuzz.partial_ratio(self.info.track.album.title.lower(), p.answer.lower())
@@ -166,7 +164,6 @@ class Game(models.Model):
             p.points += points
             p.answer = ""
             p.save()
-            i += 1
 
         await self.update_all_clients()
         await asyncio.sleep(30)
