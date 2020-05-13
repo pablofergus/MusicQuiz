@@ -13,7 +13,8 @@ $(document).ready(function() {
         volume = 0.3,
         slider = document.getElementById("volume-slider"),
         gameState = GAME_STATES.WAITING_IN_LOBBY,
-        pause = false;
+        pause = false,
+        ready = false;
     audioElement.muted = true;
 
     console.log(
@@ -67,13 +68,19 @@ $(document).ready(function() {
         else
             audioElement.play();
         pause = !pause;
-        var infos = pause ? "pause" : "resume";
+        let infos = pause ? "PAUSE" : "RESUME";
         console.log(infos);
         socket.send(infos);
     });
 
     $('#restart').click(function() {
         audioElement.currentTime = 0;
+    });
+
+    $('#ready-button').click(function() {
+        ready = !ready;
+        let infos = ready ? "READY" : "UNREADY";
+        socket.send(infos);
     });
 
     socket.onopen = function open() {
@@ -91,20 +98,36 @@ $(document).ready(function() {
                     "</div>" +
                 "</div>";
             $("#user-scores").html(userhtml);
-            console.log(gameInfo.players[0].points);
         }
     }
 
     socket.onmessage = function message(event) {
-        var data = JSON.parse(event.data),
+        let data = JSON.parse(event.data),
             gameInfo = JSON.parse(data),
             track = gameInfo.track;
         console.log(gameInfo); 
         gameState = gameInfo.game_state;
 
         switch (gameState) {
+            case GAME_STATES.WAITING_IN_LOBBY:
+                $("#game-container").hide();
+                $("#readybutton-container").show();
+                break;
+
+            case GAME_STATES.READY:
+                $("#game-container").hide();
+                $("#readybutton-container").show();
+                break;
+
+            case GAME_STATES.LOADING:
+                $("#game-container").show();
+                $("#readybutton-container").hide();
+                break;
+
             case GAME_STATES.GUESSING:
-                updatePlayers(gameInfo)
+                $("#game-container").show();
+                $("#readybutton-container").hide();
+                updatePlayers(gameInfo);
                 $("#artist").html("¿¿¿¿¿¿");
                 $("#title").html("??????");
                 $("#track-cover").html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
@@ -116,12 +139,16 @@ $(document).ready(function() {
                 break;
 
             case GAME_STATES.POST_ANSWERS:
+                $("#game-container").show();
+                $("#readybutton-container").hide();
                 userAnswer = $("#useranswer").val();
                 $("#useranswer").val("");
-                socket.send(userAnswer);
+                socket.send("ANSWER:" + userAnswer);
                 break;
 
             case GAME_STATES.RESULTS:
+                $("#game-container").show();
+                $("#readybutton-container").hide();
                 updatePlayers(gameInfo)
                 $("#artist").html(track.artists[0].name);
                 $("#title").html(track.title);

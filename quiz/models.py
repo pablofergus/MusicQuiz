@@ -123,8 +123,14 @@ class Game(models.Model):
     async def waiting_in_lobby(self):
         self.info = Game.objects.get(pk=self.id).info
         await self.update_all_clients()
-        self.info.game_state = GameStates.READY
-        self.info.save()
+        all_ready = True
+        for p in self.info.players.all():
+            if not p.ready:
+                all_ready = False
+                break
+        if all_ready:
+            self.info.game_state = GameStates.READY
+            self.info.save()
 
     async def ready(self):
         self.info = Game.objects.get(pk=self.id).info

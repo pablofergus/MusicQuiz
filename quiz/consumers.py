@@ -1,10 +1,19 @@
 import json
 from channels.generic.websocket import AsyncJsonWebsocketConsumer, WebsocketConsumer
+from channels.layers import get_channel_layer
 
 from quiz.basemodels import GameInfo
 from users.models import User
 from .models import Game
 from quiz.gamestates import GameStates
+
+
+class UserMessages:
+    PAUSE = "PAUSE"
+    RESUME = "RESUME"
+    READY = "READY"
+    UNREADY = "UNREADY"
+    ANSWER = "ANSWER:"
 
 
 class QuizConsumer(AsyncJsonWebsocketConsumer):
@@ -18,8 +27,10 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
         if str(self.scope['user']) is not 'AnonymousUser':
             await self.accept()
             print(self.scope["url_route"]["kwargs"]["stream"])
-            await Game.objects.first().add_user(self.channel_name, self.scope['user'].username)
-            print("CONNECTION: " + str(self.scope['user']))
+            game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+            if game:
+                await game.add_user(self.channel_name, self.scope['user'].username)
+                print("CONNECTION: " + str(self.scope['user']) + " to game " + str(game))
 
     async def receive(self, text_data=None, bytes_data=None, **kwargs):
         """
@@ -27,29 +38,46 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
         for us and pass it as the first argument.
         """
         print("RECIEVED: " + text_data)
-        if text_data is "pause":
+        if text_data == UserMessages.PAUSE: #TODO
             self.game_state = GameStates.PAUSE
-        if text_data is "resume":
+
+        if text_data == UserMessages.RESUME:
             self.game_state = GameStates.GUESSING
-        else:
-            p = Game.objects.first().info.players.filter(
+
+        if text_data == UserMessages.READY or text_data == UserMessages.UNREADY:
+            p = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"]).info.players.filter(
+                user=User.objects.filter(username=self.scope["user"].username).first()
+            ).first()
+            if text_data == UserMessages.READY:
+                print(self.scope["user"].username + " is ready.")
+                p.ready = True
+            else:
+                print(self.scope["user"].username + " is unready.")
+                p.ready = False
+            p.save()
+            game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+            await game.run()
+
+        if text_data.startswith(UserMessages.ANSWER):
+            p = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"]).info.players.filter(
                 user=User.objects.filter(username=self.scope["user"].username).first()
             ).first()
             if p:
-                game = Game.objects.first()  # TODO
-                setattr(p, "answer", text_data)
+                game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+                setattr(p, "answer", text_data[len(UserMessages.ANSWER):])
+                print(text_data[len(UserMessages.ANSWER):])
                 p.save(update_fields=['answer'])
                 game.info.num_answers += 1
                 game.info.save(update_fields=['num_answers'])
                 if game.info.num_answers == game.info.players.count():
                     print("gottem all")
                     return await game.run_after_posted()
-            # TODO save, and process signal
 
     async def disconnect(self, code):
         print("DISCONNECTING..." + self.scope['user'].username)
-        # await self.game.remove_user(self)
-        pass
+        game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+        if game:
+            game.remove_user(self)
 
     async def update_game_info(self, event):
         game_info = event["text"]
