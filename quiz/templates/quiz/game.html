@@ -1,7 +1,7 @@
 
 {% block game %}
 <!-- ======= Video Section ======= -->
-	<section id="hero" class="d-flex justify-cntent-center align-items-center">
+	<section id="quiz" class="d-flex justify-cntent-center align-items-center">
 
 			<div class="container">
 				<div class="row">
@@ -58,4 +58,7 @@
 
 		</div>
 	</section><!-- End About Section -->
+
+    {% load static %}
+	<script src="{% static 'quiz/js/quiz.js'%}" type="text/javascript"></script>
 {% endblock game %}

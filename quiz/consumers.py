@@ -14,17 +14,10 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
         self.game_state = GameStates.WAITING_IN_LOBBY
 
     async def connect(self):
-        #self.channel_name
+        # self.channel_name
         if str(self.scope['user']) is not 'AnonymousUser':
             await self.accept()
-            if not Game.objects.first():
-                print("Creating game...")
-                info = GameInfo.objects.create(name="gibberish")
-                game = Game.objects.create(info=info)
-                await game.run()
-            #if not Game.objects.first().running:
-                #Game.objects.first().info.game_state = GameStates.WAITING_IN_LOBBY
-                #Game.objects.first().run()
+            print(self.scope["url_route"]["kwargs"]["stream"])
             await Game.objects.first().add_user(self.channel_name, self.scope['user'].username)
             print("CONNECTION: " + str(self.scope['user']))
 
@@ -43,7 +36,7 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
                 user=User.objects.filter(username=self.scope["user"].username).first()
             ).first()
             if p:
-                game = Game.objects.first() #TODO
+                game = Game.objects.first()  # TODO
                 setattr(p, "answer", text_data)
                 p.save(update_fields=['answer'])
                 game.info.num_answers += 1
@@ -51,11 +44,11 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
                 if game.info.num_answers == game.info.players.count():
                     print("gottem all")
                     return await game.run_after_posted()
-            #TODO save, and process signal
+            # TODO save, and process signal
 
     async def disconnect(self, code):
         print("DISCONNECTING..." + self.scope['user'].username)
-        #await self.game.remove_user(self)
+        # await self.game.remove_user(self)
         pass
 
     async def update_game_info(self, event):

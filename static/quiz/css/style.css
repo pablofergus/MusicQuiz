@@ -16,7 +16,7 @@ body {
 }
 
 a {
-	color: #ef6603;
+	color: #801d1d;
 }
 
 a:hover {
@@ -47,7 +47,7 @@ h1, h2, h3, h4, h5, h6 {
 	width: 40px;
 	height: 40px;
 	border-radius: 50px;
-	background: #ef6603;
+	background: #801d1d;
 	color: #fff;
 	transition: all 0.4s;
 }
@@ -134,7 +134,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-menu a:hover, .nav-menu .active > a, .nav-menu li:hover > a {
-	background: #ef6603;
+	background: #801d1d;
 	text-decoration: none;
 }
 
@@ -174,7 +174,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-menu .drop-down ul a:hover, .nav-menu .drop-down ul .active > a, .nav-menu .drop-down ul li:hover > a {
-	color: #ef6603;
+	color: #801d1d;
 	background: none;
 }
 
@@ -270,7 +270,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .mobile-nav a:hover, .mobile-nav .active > a, .mobile-nav li:hover > a {
-	color: #ef6603;
+	color: #801d1d;
 	text-decoration: none;
 }
 
@@ -326,9 +326,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*--------------------------------------------------------------
-# Hero Section
+# Quiz Section
 --------------------------------------------------------------*/
-#hero {
+#quiz {
 	width: 100%;
 	/*height: 60vh;*/
 	overflow: hidden;
@@ -339,13 +339,13 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 992px) {
 	@media (min-width: 768px) {
-		#hero {
+		#quiz {
 			height: 45vh;
 		}
 	}
 }
 
-#hero .carousel-container {
+#quiz .carousel-container {
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -360,14 +360,14 @@ h1, h2, h3, h4, h5, h6 {
 	padding-top: 70px;
 }
 
-#hero h2 {
+#quiz h2 {
 	color: #fff;
 	font-size: 48px;
 	font-weight: 700;
 }
 
 @media (min-width: 768px) {
-	#hero h2 {
+	#quiz h2 {
 		margin-top: 50px;
 	}
 
@@ -391,7 +391,7 @@ h1, h2, h3, h4, h5, h6 {
 	}
 }
 
-#hero p {
+#quiz p {
 	width: 80%;
 	-webkit-animation-delay: 0.4s;
 	animation-delay: 0.4s;
@@ -399,11 +399,11 @@ h1, h2, h3, h4, h5, h6 {
 	color: #fff;
 }
 
-#hero .carousel-control-prev, #hero .carousel-control-next {
+#quiz .carousel-control-prev, #quiz .carousel-control-next {
 	width: 10%;
 }
 
-#hero .carousel-control-next-icon, #hero .carousel-control-prev-icon {
+#quiz .carousel-control-next-icon, #quiz .carousel-control-prev-icon {
 	background: none;
 	font-size: 48px;
 	line-height: 1;
@@ -411,7 +411,7 @@ h1, h2, h3, h4, h5, h6 {
 	height: auto;
 }
 
-#hero .btn-get-started {
+#quiz .btn-get-started {
 	font-family: "Raleway", sans-serif;
 	font-weight: 500;
 	font-size: 14px;
@@ -425,29 +425,29 @@ h1, h2, h3, h4, h5, h6 {
 	color: #fff;
 	-webkit-animation-delay: 0.8s;
 	animation-delay: 0.8s;
-	border: 2px solid #ef6603;
+	border: 2px solid #801d1d;
 }
 
-#hero .btn-get-started:hover {
-	background: #ef6603;
+#quiz .btn-get-started:hover {
+	background: #801d1d;
 	color: #fff;
 	text-decoration: none;
 }
 
 @media (min-width: 1024px) {
-	#hero p {
+	#quiz p {
 		width: 60%;
 	}
-	#hero .carousel-control-prev, #hero .carousel-control-next {
+	#quiz .carousel-control-prev, #quiz .carousel-control-next {
 		width: 5%;
 	}
 }
 
 @media (max-width: 768px) {
-	#hero {
+	#quiz {
 		height: 60vh;
 	}
-	#hero h2 {
+	#quiz h2 {
 		font-size: 28px;
 	}
 }
@@ -550,7 +550,7 @@ section {
 	height: 5px;
 	width: 300px;
 	position: absolute;
-	background: #ef6603;
+	background: #801d1d;
 	border: none;
 	border-radius: 10px;
 	outline: none;
@@ -596,7 +596,7 @@ section {
 	left: 0;
 	top: 2px;
 	font-size: 20px;
-	color: #ef6603;
+	color: #801d1d;
 	line-height: 1;
 }
 
@@ -614,15 +614,15 @@ section {
 	border-radius: 5px;
 	transition: 0.3s;
 	line-height: 1;
-	color: #ef6603;
+	color: #801d1d;
 	-webkit-animation-delay: 0.8s;
 	animation-delay: 0.8s;
 	margin-top: 6px;
-	border: 2px solid #ef6603;
+	border: 2px solid #801d1d;
 }
 
 .about .content .btn-learn-more:hover {
-	background: #ef6603;
+	background: #801d1d;
 	color: #fff;
 	text-decoration: none;
 }
@@ -654,7 +654,7 @@ section {
 
 .about h4 {
 	font-size: 36px;
-	color: #ef6603;
+	color: #801d1d;
 	font-weight: 600;
 	font-family: "Poppins", sans-serif;
 	/*margin-bottom: 5px;*/
@@ -686,7 +686,7 @@ section {
 }
 
 .about ul i {
-	color: #ef6603;
+	color: #801d1d;
 	font-size: 18px;
 	padding-right: 4px;
 }
@@ -704,7 +704,7 @@ section {
 }
 
 .about .btn-buy {
-	background: #ef6603;
+	background: #801d1d;
 	display: inline-block;
 	padding: 8px 35px 10px 35px;
 	border-radius: 50px;
@@ -722,12 +722,12 @@ section {
 }
 
 .about .featured {
-	border: 2px solid #ef6603;
+	border: 2px solid #801d1d;
 }
 
 .about .featured h3 {
 	color: #fff;
-	background: #ef6603;
+	background: #801d1d;
 }
 
 .about .advanced {
@@ -739,7 +739,7 @@ section {
 	z-index: 1;
 	font-size: 12px;
 	padding: 1px 0 3px 0;
-	background: #ef6603;
+	background: #801d1d;
 	color: #fff;
 	/*padding-left: 20%;*/
 }
@@ -766,7 +766,7 @@ section {
 
 .contact .info i {
 	font-size: 20px;
-	color: #ef6603;
+	color: #801d1d;
 	float: left;
 	width: 44px;
 	height: 44px;
@@ -798,7 +798,7 @@ section {
 }
 
 .contact .info .email:hover i, .contact .info .address:hover i, .contact .info .phone:hover i {
-	background: #ef6603;
+	background: #801d1d;
 	color: #fff;
 }
 
@@ -872,7 +872,7 @@ section {
 }
 
 .contact .php-email-form button[type="submit"] {
-	background: #ef6603;
+	background: #801d1d;
 	border: 0;
 	padding: 10px 24px;
 	color: #fff;
@@ -979,7 +979,7 @@ section {
 }
 
 .portfolio-details .portfolio-details-carousel .owl-dot.active {
-	background-color: #ef6603 !important;
+	background-color: #801d1d !important;
 }
 
 .portfolio-details .portfolio-info {
@@ -1037,6 +1037,61 @@ section {
 }
 
 /*--------------------------------------------------------------
+# Lobbies
+--------------------------------------------------------------*/
+.lobbies .icon-box {
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 29px 0 rgba(68, 88, 144, 0.12);
+  transition: all 0.4s ease-in-out;
+  width: 100%;
+  height: 100%;
+}
+
+.lobbies .icon-box:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 2px 35px 0 rgba(68, 88, 144, 0.2);
+}
+
+.lobbies .icon {
+  position: absolute;
+  left: -20px;
+  top: calc(50% - 30px);
+}
+
+.lobbies .icon i {
+  font-size: 64px;
+  line-height: 1;
+  transition: 0.5s;
+}
+
+.lobbies .title {
+  margin-left: 40px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+
+.lobbies .title a {
+  color: #2a2c39;
+  transition: ease-in-out 0.3s;
+}
+
+.lobbies .title a:hover {
+  color: #801d1d;
+}
+
+.lobbies .description {
+  font-size: 14px;
+  margin-left: 40px;
+  line-height: 24px;
+  margin-bottom: 0;
+}
+
+/*--------------------------------------------------------------
 # Footer
 --------------------------------------------------------------*/
 #footer {
@@ -1071,7 +1126,7 @@ section {
 #footer .social-links a {
 	font-size: 18px;
 	display: inline-block;
-	background: #ef6603;
+	background: #801d1d;
 	color: #fff;
 	line-height: 1;
 	padding: 8px 0;

@@ -1,18 +1,18 @@
 	<!-- ======= Header ======= -->
-	<header id="header" class="fixed-top d-flex align-items-center  header-transparent ">
+	<header id="header" class="fixed-top d-flex align-items-center">
 		<div class="container d-flex align-items-center">
 
 			<div class="logo mr-auto">
-				<h1 class="text-light"><a href="index.html">Music Not Anime Quiz</a></h1>
+				<h1 class="text-light"><a href="/">Music Not Anime Quiz</a></h1>
 				<!-- Uncomment below if you prefer to use an image logo -->
 				<!-- <a href="index.html"><img src="assets/img/logo.png" alt="" class="img-fluid"></a>-->
 			</div>
 
 			<nav class="nav-menu d-none d-lg-block">
 				<ul>
-					<li class="#hero"><a href="index.php">Home</a></li>
-					<li><a href="#about">Rooms</a></li>
-					<li><a href="#services">Create Room</a></li>
+					<li class="#hero"><a href="/">Home</a></li>
+					<li><a href="/">Rooms</a></li>
+					<li><a id="new-room-button" data-toggle="modal" data-target="#new-room">Create Room</a></li>
 
 					{% if user.is_authenticated %}
 						<li class="drop-down"><a href="">{{user}}</a>

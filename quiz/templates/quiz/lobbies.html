@@ -1,0 +1,27 @@
+{% block lobby_list %}
+<!DOCTYPE html>
+<html lang="en">
+    <section id="lobbies" class="lobbies d-flex justify-content-center align-items-center">
+        <div class="container">
+            <div class="row mt-5 mb-5">
+                {% for game in games %}
+                    <div class="col-lg-4 col-md-6 mt-5">
+                        <div class="icon-box aos-init aos-animate" data-aos="zoom-in-left">
+                            <a href="/lobby/{{ game.id  }}/">
+                                <div class="icon">
+                                    <i class="las la-headphones"></i>
+                                </div>
+                                <h4 class="title">{{ game.info.name }}</h4>
+                                <p class="description">{{ game.info.num_players }} player(s).</p>
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {% load static %}
+	<script src="{% static 'quiz/js/lobbies.js'%}" type="text/javascript"></script>
+</html>
+{% endblock %}

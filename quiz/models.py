@@ -1,6 +1,7 @@
 import asyncio
 
 from channels.layers import get_channel_layer
+from django.contrib.auth.hashers import make_password, check_password
 from fuzzywuzzy import fuzz
 from math import ceil
 
@@ -12,6 +13,35 @@ class Game(models.Model):
     radio = models.ManyToManyField('quiz.Song')
     info = models.OneToOneField('quiz.GameInfo', on_delete=models.CASCADE)
     running = models.BooleanField(default=False)
+    private = models.BooleanField(default=False)
+    password = models.CharField(default="", max_length=128)
+
+    def __str__(self):
+        return str(self.info)
+
+    def toJSON(self):
+        return {
+            "radio": [s for s in self.radio.all()],
+            "info": self.info.toJSON(),
+            "running": self.running,
+            "id": self.id,
+        }
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+        self._password = raw_password
+
+    def check_password(self, raw_password):
+        """
+        Return a boolean of whether the raw_password was correct. Handles
+        hashing formats behind the scenes.
+        """
+        def setter(raw_password):
+            self.set_password(raw_password)
+            # Password hash upgrades shouldn't be considered password changes.
+            self._password = None
+            self.save(update_fields=["password"])
+        return check_password(raw_password, self.password, setter)
 
     async def run(self):
         loop = asyncio.get_event_loop()

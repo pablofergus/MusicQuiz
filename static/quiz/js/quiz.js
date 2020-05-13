@@ -6,21 +6,27 @@ GAME_STATES = {
     "POST_ANSWERS": "Post answers",
     "RESULTS": "Results",
     "VICTORY": "Victory",
-}
+};
 
 $(document).ready(function() {
-    let audioElement = document.createElement('audio');
+    let audioElement = document.createElement('audio'),
+        volume = 0.3,
+        slider = document.getElementById("volume-slider"),
+        gameState = GAME_STATES.WAITING_IN_LOBBY,
+        pause = false;
     audioElement.muted = true;
-    let volume = 0.3;
-    let slider = document.getElementById("volume-slider");
-    let gameState = GAME_STATES.WAITING_IN_LOBBY;
-    let pause = false;
-    let players = [];
 
+    console.log(
+            'ws://'
+            + window.location.host
+            + '/ws/quiz'
+            + window.location.pathname
+    );
     const socket = new WebSocket(
             'ws://'
             + window.location.host
-            + '/ws/quiz/'
+            + '/ws/quiz'
+            + window.location.pathname
         );
 
     $("#volume").slider({
@@ -76,8 +82,8 @@ $(document).ready(function() {
     };
 
     function updatePlayers(gameInfo) {
-        var userhtml = "";
-        for(var i = 0; i < gameInfo.num_players; i++) {
+        let userhtml = "";
+        for(let i = 0; i < gameInfo.num_players; i++) {
             userhtml += "<div class=\"col-lg-" + String(Math.floor(12/gameInfo.num_players)) + " col-md-6 mb-md-4\">" +
                     "<div class=\"box featured\" data-aos=\"zoom-in\">" +
                         "<h3>" + String(gameInfo.players[i].user.username) + "</h3>" +
@@ -101,7 +107,7 @@ $(document).ready(function() {
                 updatePlayers(gameInfo)
                 $("#artist").html("¿¿¿¿¿¿");
                 $("#title").html("??????");
-                $("#track-cover").html("<img src=\"" + track.album.cover + "\"/>");
+                $("#track-cover").html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
                 audioElement.setAttribute('src', track.download_url);
                 $('#track-cover').css({
                     "-webkit-filter": "blur(50px)",
@@ -131,7 +137,7 @@ $(document).ready(function() {
                     }
                 });
                 audioElement.setAttribute('src', track.download_url);
-                audioElement.restart()
+                audioElement.restart();
                 setTimeout(() => { console.log("animated"); }, 2000);
                 $("#track-cover").css({
                     "-webkit-filter": "blur(0px);",
@@ -142,7 +148,7 @@ $(document).ready(function() {
 
             default:
                 console.log("PLZ TO HELP");
-                console.log(gameState)
+                console.log(gameState);
                 break;
         }
 
@@ -155,15 +161,16 @@ $(document).ready(function() {
     }
 });
 
-$( window ).on("unload", function(e) {
+/*$( window ).on("unload", function(e) {
     const socket = new WebSocket(
-        'ws://'
-        + window.location.host
-        + '/ws/quiz/'
+            'ws://'
+            + window.location.host
+            + '/ws/quiz'
+            + window.location.path
     );
     console.log("DISCONNECTED");
     socket.close();
-});
+});*/
 
 /*class Player {
     constructor() {
