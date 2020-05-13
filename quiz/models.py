@@ -7,14 +7,13 @@ from math import ceil
 
 from quiz.deezer import get_genre_list, get_genre_radio, pop_genre_radio_track
 from quiz.basemodels import *
+from users.models import User
 
 
 class Game(models.Model):
     radio = models.ManyToManyField('quiz.Song')
     info = models.OneToOneField('quiz.GameInfo', on_delete=models.CASCADE)
     running = models.BooleanField(default=False)
-    private = models.BooleanField(default=False)
-    password = models.CharField(default="", max_length=128)
 
     def __str__(self):
         return str(self.info)
@@ -44,12 +43,12 @@ class Game(models.Model):
         return check_password(raw_password, self.password, setter)
 
     async def run(self):
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.long_running())
-        print("Starting game...")
+        if not Game.objects.get(pk=self.id).running:
+            loop = asyncio.get_event_loop()
+            loop.create_task(self.long_running())
 
     async def run_after_posted(self):
-        if self.info.game_state == GameStates.POST_ANSWERS and not self.running:
+        if self.info.game_state == GameStates.POST_ANSWERS and not Game.objects.get(pk=self.id).running:
             loop = asyncio.get_event_loop()
             loop.create_task(self.long_running())
             print("Continuing game...")
@@ -67,11 +66,20 @@ class Game(models.Model):
         }
         self.running = True
         self.save()
-        print("SAVEDRUNNINGSTATE" + str(self.running))
-        while self.running is True and self.info.game_state is not None:
-            print(self.info.game_state)
-            state = automaton.get(self.info.game_state)
-            await state()
+        try:
+            while Game.objects.get(pk=self.id) and self.running is True and self.info.game_state is not None:
+                print(self.info.game_state)
+                self.info.save()
+                state = automaton.get(self.info.game_state)
+                await state()
+        except Game.DoesNotExist:
+            print("Does not exist")
+            pass
+
+    @staticmethod
+    def stop():
+        print("Destroying game :>")
+        asyncio.Task.current_task().cancel()
 
     async def update_all_clients(self):
         self.info.save()
@@ -107,13 +115,19 @@ class Game(models.Model):
         #if len(self.game_info.players) is 1:
             #await self.run()
 
-    async def remove_user(self, channel_name): #TODO
-        self.info = Game.objects.first().info
-        player = Player.objects.get_or_create(channel_name=channel_name)
+    async def remove_user(self, channel_name):
+        self.info = Game.objects.get(pk=self.id).info
+        player, _ = Player.objects.get_or_create(channel_name=channel_name)
         print(player.user.username + " has left the game")
         self.info.players.remove(player)
         player.delete()
-        await self.update_all_clients()
+        self.info.num_players = self.info.players.count()
+        if self.info.num_players is 0:
+            GameInfo.objects.get(pk=self.info.id).delete()
+            #Game.objects.get(pk=self.id).delete()
+            Game.stop()
+        else:
+            await self.update_all_clients()
 
     def add_to_song_history(self):
         for p in self.info.players.all():
@@ -130,13 +144,16 @@ class Game(models.Model):
                 break
         if all_ready:
             self.info.game_state = GameStates.READY
-            self.info.save()
+        else:
+            self.running = False;
+            self.save()
+            self.stop()
 
     async def ready(self):
+        print("Starting game...")
         self.info = Game.objects.get(pk=self.id).info
         await self.update_all_clients()
         self.info.game_state = GameStates.LOADING
-        self.info.save()
 
     async def loading(self):
         self.info = Game.objects.get(pk=self.id).info
@@ -149,7 +166,6 @@ class Game(models.Model):
                 _, song, radio_deezer = pop_genre_radio_track(radio_deezer)
                 self.radio.add(song)
         self.info.game_state = GameStates.GUESSING
-        self.info.save()
 
     async def guessing(self):
         self.info = Game.objects.get(pk=self.id).info
@@ -160,11 +176,10 @@ class Game(models.Model):
         self.radio.remove(self.radio.all().first())
         self.add_to_song_history()
         await self.update_all_clients()
-        await asyncio.sleep(30)
         self.info.num_answers = 0
         self.info.save()
         self.info.game_state = GameStates.POST_ANSWERS
-        self.info.save()
+        await asyncio.sleep(30)
 
     async def post_answers(self):
         self.info = Game.objects.get(pk=self.id).info
@@ -179,13 +194,12 @@ class Game(models.Model):
                 print("TIMED OUT" + str(getattr(Game.objects.get(pk=self.id), 'running')))
                 self.info.num_answers = -1
                 self.info.save()
-                return await self.run_after_posted()
+                await self.run_after_posted()
+                self.stop()
             return
         else:
             self.info.num_answers = 0
-            self.info.save()
             self.info.game_state = GameStates.RESULTS
-            self.info.save()
 
     async def results(self):
         self.info = Game.objects.get(pk=self.id).info
@@ -202,9 +216,8 @@ class Game(models.Model):
             p.save()
 
         await self.update_all_clients()
-        await asyncio.sleep(30)
         self.info.game_state = GameStates.GUESSING
-        self.info.save()
+        await asyncio.sleep(30)
 
     async def victory(self):
         await asyncio.sleep(30)

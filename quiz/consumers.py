@@ -27,10 +27,13 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
         if str(self.scope['user']) is not 'AnonymousUser':
             await self.accept()
             print(self.scope["url_route"]["kwargs"]["stream"])
-            game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
-            if game:
-                await game.add_user(self.channel_name, self.scope['user'].username)
-                print("CONNECTION: " + str(self.scope['user']) + " to game " + str(game))
+            try:
+                game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+                if game:
+                    await game.add_user(self.channel_name, self.scope['user'].username)
+                    print("CONNECTION: " + str(self.scope['user']) + " to game " + str(game))
+            except Game.DoesNotExist:
+                pass
 
     async def receive(self, text_data=None, bytes_data=None, **kwargs):
         """
@@ -77,7 +80,7 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
         print("DISCONNECTING..." + self.scope['user'].username)
         game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
         if game:
-            game.remove_user(self)
+            await game.remove_user(self.channel_name)
 
     async def update_game_info(self, event):
         game_info = event["text"]

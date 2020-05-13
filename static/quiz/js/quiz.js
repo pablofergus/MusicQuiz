@@ -78,9 +78,13 @@ $(document).ready(function() {
     });
 
     $('#ready-button').click(function() {
-        ready = !ready;
-        let infos = ready ? "READY" : "UNREADY";
-        socket.send(infos);
+        if (gameState === GAME_STATES.WAITING_IN_LOBBY) {
+            ready = !ready;
+            let infos = ready ? "READY" : "UNREADY";
+            socket.send(infos);
+            let text = ready ? "Ready up" : "Unready";
+            $("#ready").text(text)
+        }
     });
 
     socket.onopen = function open() {
@@ -120,6 +124,7 @@ $(document).ready(function() {
                 break;
 
             case GAME_STATES.LOADING:
+                $("#ready").text("LOADING...")
                 $("#game-container").show();
                 $("#readybutton-container").hide();
                 break;

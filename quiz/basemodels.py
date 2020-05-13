@@ -2,7 +2,12 @@ from django.db import models
 from django.urls import reverse
 
 from quiz.gamestates import GameStates
-from users.models import User
+
+
+class Genre(models.Model):
+    name = models.CharField(max_length=128)
+    deezer_id = models.IntegerField()
+    picture = models.URLField(null=True, blank=True)
 
 
 class Artist(models.Model):
@@ -82,6 +87,20 @@ class Player(models.Model):
         }
 
 
+class GameTypes(models.Model):
+    type_id = models.IntegerField()
+    name = models.CharField(max_length=128)
+
+
+class GameSettings(models.Model):
+    rounds = models.IntegerField(default=15)
+    private = models.BooleanField(default=False)
+    password = models.CharField(max_length=128)
+    game_type = models.ManyToManyField('quiz.GameTypes')
+    genre = models.ManyToManyField('quiz.Genre')
+    words = models.TextField(blank=True)
+
+
 class GameInfo(models.Model):
     track = models.ForeignKey('quiz.Song', null=True, blank=True, on_delete=models.PROTECT)
     players = models.ManyToManyField(Player)
@@ -89,6 +108,7 @@ class GameInfo(models.Model):
     game_state = models.CharField(max_length=20, default=GameStates.WAITING_IN_LOBBY)
     num_answers = models.IntegerField(default=0)
     name = models.CharField(max_length=50)
+    settings = models.OneToOneField('quiz.GameSettings', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -108,5 +128,4 @@ class GameInfo(models.Model):
         for p in self.players.all():
             result["players"].append(p.toJSON())
         return result
-
 

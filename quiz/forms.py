@@ -1,14 +1,25 @@
 from django import forms
-from django.core.exceptions import ValidationError
+from django.core.validators import EMPTY_VALUES
 
-from quiz.basemodels import GameInfo
-from quiz.models import Game
+from quiz.models import Game, GameInfo, GameSettings
 
 
 class CustomGameCreationForm(forms.Form):
-    name = forms.CharField(label='Name', min_length=4, max_length=20)
-    private = forms.BooleanField(label="Private")
-    password = forms.CharField(label='Password (if private)', widget=forms.PasswordInput)
+    name = forms.CharField(label='Name', min_length=4, max_length=20,
+                           widget=forms.TextInput(attrs={'autocomplete': 'nope'}))
+    private = forms.BooleanField(label="Private", required=False)
+    password = forms.CharField(
+        label='Password (if private)',
+        widget=forms.PasswordInput(attrs={'autocomplete': 'nope'}),
+        required=False)
+
+    def clean(self):
+        private = self.cleaned_data.get('private', False)
+        if private:
+            password = self.cleaned_data.get('password', None)
+            if password in EMPTY_VALUES:
+                self._errors['password'] = self.error_class(['Password required if private'])
+        return self.cleaned_data
 
     def clean_username(self):
         name = self.cleaned_data['name'].lower()
@@ -17,17 +28,15 @@ class CustomGameCreationForm(forms.Form):
             raise ValidationError("Username already exists")"""
         return name
 
-    def clean_password(self):
-        return self.cleaned_data.get('password')
-
     def save(self, commit=True):
-        info = GameInfo.objects.create(name=self.cleaned_data['name'])
-        game = Game.objects.create(
-            info=info,
+        settings = GameSettings.objects.create(
             private=self.cleaned_data['private'],
             password=self.cleaned_data['password']
         )
+        info = GameInfo.objects.create(name=self.cleaned_data['name'], settings=settings)
+        game = Game.objects.create(info=info)
         return game
+
 
 """
 class CustomAuthenticationForm(forms.Form):
