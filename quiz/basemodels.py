@@ -91,6 +91,9 @@ class GameTypes(models.Model):
     type_id = models.IntegerField()
     name = models.CharField(max_length=128)
 
+    def __str__(self):
+        return self.name
+
 
 class GameSettings(models.Model):
     rounds = models.IntegerField(default=15)

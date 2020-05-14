@@ -1,3 +1,4 @@
+// Possible game states, mirroring backend gamestates.py
 GAME_STATES = {
     "WAITING_IN_LOBBY": "Waiting in lobby",
     "READY": "Ready",
@@ -9,28 +10,42 @@ GAME_STATES = {
 };
 
 $(document).ready(function() {
+    /**
+     * Quiz variables
+     * @type {HTMLAudioElement,number,string,boolean}
+     */
     let audioElement = document.createElement('audio'),
         volume = 0.3,
         slider = document.getElementById("volume-slider"),
+        socketUrl = 'ws://' + window.location.host + '/ws/quiz' + window.location.pathname,
         gameState = GAME_STATES.WAITING_IN_LOBBY,
         pause = false,
         ready = false;
     audioElement.muted = true;
 
-    console.log(
-            'ws://'
-            + window.location.host
-            + '/ws/quiz'
-            + window.location.pathname
-    );
-    const socket = new WebSocket(
-            'ws://'
-            + window.location.host
-            + '/ws/quiz'
-            + window.location.pathname
-        );
+    /**
+     * jQuery selectors
+     * @type {jQuery.fn.init|jQuery|HTMLElement}
+     */
+    const gameContainer =  $("#game-container"),
+        readyButtonContainer = $("#readybutton-container"),
+        readyButton = $("#ready-button"),
+        readySpan = $("ready"),
+        artistSpan = $("#artist"),
+        titleSpan = $("#title"),
+        coverSpan = $("#track-cover"),
+        userInput = $("#useranswer"),
+        timer = $("#currentTime"),
+        pauseButton = $('#pause'),
+        volumeSlider = $("#volume");
 
-    $("#volume").slider({
+    console.log(socketUrl);
+    const socket = new WebSocket(socketUrl);
+
+    /**
+     * Set up the volume slider.
+     */
+    volumeSlider.slider({
         orientation: "vertical",
         min: 0,
         max: 100,
@@ -41,28 +56,38 @@ $(document).ready(function() {
         }
     });
 
+    /**
+     * Function to change the player volume.
+     * @param myVolume Between 0 and 100.
+     */
     function setVolume(myVolume) {
         audioElement.volume = myVolume;
         volume = myVolume;
     }
 
-    //audioElement.addEventListener('ended', function() {
-    //        this.play();
-    //}, false);
 
+    /**
+     * When the player is ready, set it up and play the song.
+     */
     audioElement.addEventListener("canplay",function(){
-        $("#timer").text(audioElement.duration-1);
+        //timer.text(audioElement.duration);
         //socket.send("canplay");
         this.volume = volume;
         audioElement.muted = false;
-        audioElement.play();
+        audioElement.play().then(r => {}); //TODO handle end of playing
     });
 
+    /**
+     * Update timer according to audio element.
+     */
     audioElement.addEventListener("timeupdate",function(){
-        $("#currentTime").text(Math.floor(31-audioElement.currentTime));
+        timer.text(Math.floor(31-audioElement.currentTime));
     });
 
-    $('#pause').click(function() {
+    /**
+     * On click on the pause button, toggle between paused and unpaused and notify the server.
+     */
+    pauseButton.click(function() {
         if(!pause)
             audioElement.pause();
         else
@@ -73,25 +98,35 @@ $(document).ready(function() {
         socket.send(infos);
     });
 
-    $('#restart').click(function() {
+    /*$('#restart').click(function() {
         audioElement.currentTime = 0;
     });
+    audioElement.addEventListener('ended', function() {
+            this.play();
+    }, false);*/
 
-    $('#ready-button').click(function() {
+    /**
+     * Toggle ready status on view and notify server.
+     */
+    readyButton.click(function() {
         if (gameState === GAME_STATES.WAITING_IN_LOBBY) {
             ready = !ready;
             let infos = ready ? "READY" : "UNREADY";
             socket.send(infos);
             let text = ready ? "Ready up" : "Unready";
-            $("#ready").text(text)
+            readySpan.text(text)
         }
     });
 
+    // TODO Debug
     socket.onopen = function open() {
       console.log('WebSockets connection created.');
-      //socket.send("I have connected")
     };
 
+    /**
+     * Updates players info, mostly used for updating points, based on the game info given.
+     * @param gameInfo Dict with game information.
+     */
     function updatePlayers(gameInfo) {
         let userhtml = "";
         for(let i = 0; i < gameInfo.num_players; i++) {
@@ -105,92 +140,100 @@ $(document).ready(function() {
         }
     }
 
+    /**
+     * Just hides one element and shows another, to clean up code.
+     * @param toHide Element to hide.
+     * @param toShow Element to show
+     */
+    function hideShow(toHide, toShow) {
+        toHide.hide();
+        toShow.show();
+    }
+
+    // On received websocket message
     socket.onmessage = function message(event) {
+        // Parse de incoming data
         let data = JSON.parse(event.data),
             gameInfo = JSON.parse(data),
             track = gameInfo.track;
-        console.log(gameInfo); 
+        console.log(gameInfo); // TODO just for debug
         gameState = gameInfo.game_state;
 
+        // State machine
         switch (gameState) {
             case GAME_STATES.WAITING_IN_LOBBY:
-                $("#game-container").hide();
-                $("#readybutton-container").show();
+                hideShow(gameContainer, readyButtonContainer);
                 break;
 
             case GAME_STATES.READY:
-                $("#game-container").hide();
-                $("#readybutton-container").show();
+                hideShow(gameContainer, readyButtonContainer);
                 break;
 
             case GAME_STATES.LOADING:
-                $("#ready").text("LOADING...")
-                $("#game-container").show();
-                $("#readybutton-container").hide();
+                readyButton.text("LOADING...");
+                gameContainer.show();
+                readyButtonContainer.hide();
                 break;
 
             case GAME_STATES.GUESSING:
-                $("#game-container").show();
-                $("#readybutton-container").hide();
+                gameContainer.show();
+                readyButtonContainer.hide();
                 updatePlayers(gameInfo);
-                $("#artist").html("¿¿¿¿¿¿");
-                $("#title").html("??????");
-                $("#track-cover").html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
+                artistSpan.html("¿¿¿¿¿¿");
+                titleSpan.html("??????");
+                coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
                 audioElement.setAttribute('src', track.download_url);
-                $('#track-cover').css({
+                coverSpan.css({
                     "-webkit-filter": "blur(50px)",
                     "filter": "blur(50px)"
                 });
                 break;
 
             case GAME_STATES.POST_ANSWERS:
-                $("#game-container").show();
-                $("#readybutton-container").hide();
-                userAnswer = $("#useranswer").val();
-                $("#useranswer").val("");
+                gameContainer.show();
+                readyButtonContainer.hide();
+                let userAnswer = userInput.val();
+                userInput.val("");
                 socket.send("ANSWER:" + userAnswer);
                 break;
 
             case GAME_STATES.RESULTS:
-                $("#game-container").show();
-                $("#readybutton-container").hide();
-                updatePlayers(gameInfo)
-                $("#artist").html(track.artists[0].name);
-                $("#title").html(track.title);
-                $("#track-cover").html("<img src=\"" + track.album.cover + "\"/>");
+                gameContainer.show();
+                readyButtonContainer.hide();
+                updatePlayers(gameInfo);
+                artistSpan.html(track.artists[0].name);
+                titleSpan.html(track.title);
+                coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
                 $({blurRadius: 50}).animate({blurRadius: 0}, {
                     duration: 2000,
                     easing: 'swing',
                     step: function() {
-                        $('#track-cover').css({
+                        coverSpan.css({
                             "-webkit-filter": "blur("+this.blurRadius+"px)",
                             "filter": "blur("+this.blurRadius+"px)"
                         });
                     }
                 });
                 audioElement.setAttribute('src', track.download_url);
-                audioElement.restart();
                 setTimeout(() => { console.log("animated"); }, 2000);
-                $("#track-cover").css({
+                coverSpan.css({
                     "-webkit-filter": "blur(0px);",
                     "filter": "blur(0px);"
                 });
-                $("#score-username").html("6");
+                //$("#score-username").html("6");
                 break;
 
-            default:
+            default: // This should never happen
                 console.log("PLZ TO HELP");
                 console.log(gameState);
                 break;
         }
-
-        document.players = gameInfo.players;
     };
 
-    document.ws = socket; /* debugging */
-    if (socket.readyState === WebSocket.OPEN) {
+    document.ws = socket; // TODO debug
+    /*if (socket.readyState === WebSocket.OPEN) {
       socket.onopen();
-    }
+    }*/
 });
 
 /*$( window ).on("unload", function(e) {
@@ -203,12 +246,3 @@ $(document).ready(function() {
     console.log("DISCONNECTED");
     socket.close();
 });*/
-
-/*class Player {
-    constructor() {
-        this.username = "";
-        this.points = 0;
-        this.correct = false;
-        this.picture = "";
-    }
-}*/

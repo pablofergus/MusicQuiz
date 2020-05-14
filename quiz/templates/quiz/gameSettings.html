@@ -1,8 +1,8 @@
-<div class="modal" tabindex="-1" role="dialog" aria-labelledby="new-room" aria-hidden="true" id="new-room">
+<div class="modal" tabindex="-1" role="dialog" aria-labelledby="game-settings" aria-hidden="true" id="game-settings">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Create a new room</h5>
+                <h5 class="modal-title">Edit room settings</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -10,11 +10,11 @@
             <form action="new-room/" id="login-form" method="post">
                 {% csrf_token %}
                 <div class="modal-body">
-                    {{ gform }}
+                    {{ sform }}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <input type="submit" value="Create" class="btn btn-primary" />
+                    <input type="submit" value="Save" class="btn btn-primary" />
                 </div>
             </form>
         </div>

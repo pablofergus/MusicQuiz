@@ -145,7 +145,7 @@ class Game(models.Model):
         if all_ready:
             self.info.game_state = GameStates.READY
         else:
-            self.running = False;
+            self.running = False
             self.save()
             self.stop()
 

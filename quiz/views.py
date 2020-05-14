@@ -1,7 +1,7 @@
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render
 
-from quiz.forms import CustomGameCreationForm
+from quiz.forms import CustomGameCreationForm, SettingsForm
 from quiz.models import Game, GameInfo
 from users.forms import CustomAuthenticationForm, CustomUserCreationForm
 
@@ -11,6 +11,7 @@ def index(request):
     rform = CustomUserCreationForm().as_p()
     aform = CustomAuthenticationForm().as_p()
     gform = CustomGameCreationForm().as_p()
+    sform = SettingsForm().as_p()
     # if request.user.is_authenticated:
     #    track, song = get_random_track()
     #    request.user.song_history.add(song)
@@ -19,6 +20,7 @@ def index(request):
         'games': games,
         'rform': rform,
         'aform': aform,
+        'sform': sform,
     }
     return render(request, 'index.html', context)
 
@@ -28,11 +30,13 @@ def lobby(request, game_id):
     aform = CustomAuthenticationForm().as_p()
     gform = CustomGameCreationForm().as_p()
     game = Game.objects.get(pk=game_id)
+    sform = SettingsForm().as_p()
     context = {
         'game': game,
         'gform': gform,
         'rform': rform,
         'aform': aform,
+        'sform': sform,
     }
     return render(request, 'index.html', context)
 

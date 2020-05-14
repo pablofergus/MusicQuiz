@@ -1,7 +1,7 @@
 from django import forms
 from django.core.validators import EMPTY_VALUES
 
-from quiz.models import Game, GameInfo, GameSettings
+from quiz.models import Game, GameInfo, GameSettings, GameTypes, Genre
 
 
 class CustomGameCreationForm(forms.Form):
@@ -38,33 +38,20 @@ class CustomGameCreationForm(forms.Form):
         return game
 
 
-"""
-class CustomAuthenticationForm(forms.Form):
-    username = forms.CharField(
-        widget=forms.TextInput(attrs={'autofocus': True}),
-        max_length=50,
-        required=True,
-    )
+TITLE_CHOICES = [
+    ('MR', 'Mr.'),
+    ('MRS', 'Mrs.'),
+    ('MS', 'Ms.'),
+]
+
+
+class SettingsForm(forms.Form):
+    rounds = forms.IntegerField(label="Rounds", min_value=1, max_value=50, widget=forms.NumberInput(attrs={'type':'range', 'step': '1'}))
+    private = forms.BooleanField(label="Private", required=False, widget=forms.CheckboxInput())
     password = forms.CharField(
-        label="Password",
-        strip=False,
-        widget=forms.PasswordInput,
-        required=True,
-    )
-
-    def __init__(self, request=None, *args, **kwargs):
-        self.user_cache = None
-        self.request = request
-        super(CustomAuthenticationForm, self).__init__(*args, **kwargs)
-
-    def clean_username(self):
-        username = self.cleaned_data['username'].lower()
-        r = User.objects.filter(username=username)
-        if not r.count():
-            raise ValidationError("Username does not exist")
-        return username
-
-    def clean_password(self):
-        password = self.cleaned_data['password']
-        username = self.data.get('username').lower()
-        return password"""
+        label='Password (if private)',
+        widget=forms.PasswordInput(attrs={'autocomplete': 'nope'}),
+        required=False)
+    game_type = forms.ModelChoiceField(label="Game type", queryset=GameTypes.objects.all())
+    genre = forms.ModelChoiceField(label="Game type", queryset=Genre.objects.all())
+    words = forms.CharField(label="Search terms (separated with ,)", widget=forms.Textarea(), required=False)

@@ -1,8 +1,6 @@
 import json
 from channels.generic.websocket import AsyncJsonWebsocketConsumer, WebsocketConsumer
-from channels.layers import get_channel_layer
 
-from quiz.basemodels import GameInfo
 from users.models import User
 from .models import Game
 from quiz.gamestates import GameStates
