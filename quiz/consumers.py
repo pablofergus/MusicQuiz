@@ -21,14 +21,17 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
         self.game_state = GameStates.WAITING_IN_LOBBY
 
     async def connect(self):
-        # self.channel_name
         if str(self.scope['user']) is not 'AnonymousUser':
             await self.accept()
             print(self.scope["url_route"]["kwargs"]["stream"])
             try:
                 game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
                 if game:
-                    await game.add_user(self.channel_name, self.scope['user'].username)
+                    # if game.info.settings.private: TODO gotta check for password for private games
+                    # authorized = game.check_password()
+                    await game.add_player(self.channel_name, self.scope['user'].username)
+                    if not game.running:
+                        await game.run()
                     print("CONNECTION: " + str(self.scope['user']) + " to game " + str(game))
             except Game.DoesNotExist:
                 pass
@@ -39,7 +42,7 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
         for us and pass it as the first argument.
         """
         print("RECIEVED: " + text_data)
-        if text_data == UserMessages.PAUSE: #TODO
+        if text_data == UserMessages.PAUSE:  # TODO
             self.game_state = GameStates.PAUSE
 
         if text_data == UserMessages.RESUME:
@@ -75,12 +78,18 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
                     return await game.run_after_posted()
 
     async def disconnect(self, code):
+        """
+        When user disconnects from the game, he is removed and deleted.
+        """
         print("DISCONNECTING..." + self.scope['user'].username)
         game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
         if game:
-            await game.remove_user(self.channel_name)
+            await game.remove_player(self.channel_name)
 
     async def update_game_info(self, event):
+        """
+        Called to update the clients when the game state changes.
+        """
         game_info = event["text"]
         if game_info["game_state"] != GameStates.RESULTS:
             if game_info["track"] is not None:

@@ -170,7 +170,7 @@ $(document).ready(function() {
                 break;
 
             case GAME_STATES.LOADING:
-                readyButton.text("LOADING...");
+                readyButton.text("LOADING..."); //TODO show loading animation
                 gameContainer.show();
                 readyButtonContainer.hide();
                 break;
@@ -190,6 +190,7 @@ $(document).ready(function() {
                 break;
 
             case GAME_STATES.POST_ANSWERS:
+                //TODO show loading animation
                 gameContainer.show();
                 readyButtonContainer.hide();
                 let userAnswer = userInput.val();
