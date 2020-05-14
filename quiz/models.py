@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from fuzzywuzzy import fuzz
 from math import ceil
 
-from quiz.deezer import get_genre_list, get_genre_radio, pop_genre_radio_track, get_random_track, get_charts
+from quiz.deezer import get_genre_list, get_genre_radio, get_enough_tracks
 from quiz.basemodels import *
 from users.models import User
 
@@ -157,8 +157,8 @@ class Game(models.Model):
             if p.user.username is not 'AnonymousUser':
                 p.user.song_history.add(Song.objects.filter(download_url=self.info.track.download_url).first())
 
-    def update_genre_list(self):
-        genres = get_genre_list()
+    async def update_genre_list(self):
+        genres = await get_genre_list()
         self.info = Game.objects.get(pk=self.id).info
         Genre.objects.all().delete()
         for genre in genres:
@@ -173,7 +173,7 @@ class Game(models.Model):
         """
         Checks if all players are ready. If ready, passes to READY.
         """
-        #self.update_genre_list()
+        # await self.update_genre_list()
         await self.update_all_clients()
         all_ready = True
         for p in self.info.players.all():
@@ -201,31 +201,19 @@ class Game(models.Model):
         await self.update_all_clients()
         if self.info.settings.game_type.type_id is 3:
             print("loading random tracks...")
-            while self.radio.count() < self.info.settings.rounds:
-                _, song = get_random_track()
-                self.radio.add(song)
+            songs = await get_enough_tracks(self.info.settings.rounds, random=True)
+            self.radio.add(*songs)
 
         if self.info.settings.game_type.type_id is 2:
-            charts = get_charts()
             print("loading charts...")
-            rest = len(charts) - self.info.settings.rounds
-            if rest < 0:
-                rest = 0
-            while len(charts) > rest:
-                _, song, radio_deezer = pop_genre_radio_track(charts)
-                self.radio.add(song)
+            songs = await get_enough_tracks(self.info.settings.rounds, charts=True)
+            self.radio.add(*songs)
 
         if self.info.settings.game_type.type_id is 1:
-            genres = get_genre_list()
+            # genres = get_genre_list()
             print("loading radio...")
-            genre = next((genre for genre in genres if genre["id"] == self.info.settings.genre.deezer_id), None)
-            radio_deezer = get_genre_radio(genre) #TODO can just pass the tracklist instead of this roundabout trhing
-            rest = len(radio_deezer) - self.info.settings.rounds
-            if rest < 0:
-                rest = 0
-            while len(radio_deezer) > rest:
-                _, song, radio_deezer = pop_genre_radio_track(radio_deezer)
-                self.radio.add(song)
+            songs = await get_enough_tracks(self.info.settings.rounds, genre=self.info.settings.genre.tracklist)
+            self.radio.add(*songs)
         self.info.game_state = GameStates.GUESSING
 
     async def guessing(self):
@@ -239,6 +227,7 @@ class Game(models.Model):
         self.radio.remove(self.radio.all().first())
         self.add_to_song_history()
 
+        self.info.round += 1
         await self.update_all_clients()
         self.info.num_answers = 0
         self.info.save()

@@ -4,7 +4,7 @@
 	<section id="quiz" class="d-flex justify-cntent-center align-items-center">
 
             {% if user.is_authenticated %}
-			<div id="game-container" class="container">
+			<div id="game-container" class="container invisible">
 				<div class="row">
 					<div class="col-lg-12">
                         <h2 class="animated fadeInDown"><span id="artist"></span> - <span id="title"></span></h2>
@@ -23,7 +23,8 @@
                     </div>
                     <div class="col-lg-2">
                         <a id="pause" href="#">PAUSE</a>
-                        <p id="currentTime"></p>
+                        <p id="current-time"></p>
+                        <p id="current-round"></p>
                     </div>
 				</div>
 				<div class="col-lg-6 offset-lg-3">
@@ -31,9 +32,9 @@
 				</div>
 			</div>
 
-            <div id="readybutton-container" class="container">
+            <div id="readybutton-container" class="container visible">
 				<div class="row">
-					<div class="col-lg-12">
+					<div class="col-lg-12 mt-5">
                         <h2 id="ready-button" class="animated fadeInDown"><span id="ready">Ready up</span></h2>
 					</div>
 				</div>

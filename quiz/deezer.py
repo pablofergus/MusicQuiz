@@ -1,5 +1,7 @@
+import asyncio
 import json
 import requests
+import aiohttp
 import random
 
 from quiz.basemodels import Song, Artist, Album
@@ -10,96 +12,144 @@ from .exceptions import DeezerApiResponseException
 # https://api.deezer.com/search?q=bpm_min:120 dur_min:300
 
 
-def get_random_track(filters=None):
+async def get_enough_tracks(count, random=False, charts=False, genre=None):
+    async with aiohttp.ClientSession() as session:
+        if random:
+            functions = [get_random_track(session)] * count
+        if charts:
+            charts = await get_charts(session)
+            functions = [get_chart_track(session, charts)] * count
+        if genre:
+            radio = await get_genre_radio(session, genre)
+            count = min(count, len(radio)) - 1
+            functions = []
+            while count >= 0:
+                url = "https://api.deezer.com/track/" + str(radio[count]['id'])
+                count -= 1
+                functions.append(pop_genre_radio_track(session, url))
+
+        result = await asyncio.gather(*functions)
+        await session.close()
+        return result
+
+
+async def get_random_track(session, filters=None):
     search = []
     while not search:
-        word = get_random_word()
-        search = get_search(word)
+        word = await get_random_word(session)
+        search = await get_search(session, word)
     print(word)
-    track = DeezerTrack(search[0])
+    track = await DeezerTrack.create(search[0], session)
     song = save_song(track)
-    return track, song
+    return song
 
 
-def get_chart_track(filters=None):
-    charts = get_charts()
+async def get_chart_track(session, charts, filters=None):
+    #charts = await get_charts()
     track = select_track(charts)
-    save_song(track)
-    return track
-
-
-def pop_genre_radio_track(tracklist, filters=None):
-    url = "https://api.deezer.com/track/" + str(tracklist[0]['id'])
-    track = DeezerTrack(request_and_parse(url))
-    del tracklist[0]
     song = save_song(track)
-    return track, song, tracklist
+    return song
+
+
+async def pop_genre_radio_track(session, url, filters=None):
+    track = await DeezerTrack.create(await request_and_parse(session, url), session)
+    #del tracklist[0]
+    song = save_song(track)
+    return song
 
 
 def select_track(tracks, filters=None):
-    url = "https://api.deezer.com/track?q=?order=RANKING"
     return random.choice(tracks)
 
 
-def get_charts(filters=None):
+async def get_charts(session, filters=None):
     url = "https://api.deezer.com/editorial/0/charts"
-    return request_and_parse(url)['tracks']['data']
+    return (await request_and_parse(session, url))['tracks']['data']
 
 
-def get_search(query, filters=None):
+async def get_search(session, query, filters=None):
     url = "https://api.deezer.com/search/?q=" + str(query) + "&order=RATING_DESC"  # "&order=RANKING"
-    return request_and_parse(url)['data']
+    return (await request_and_parse(session, url))['data']
 
 
-def get_genre_radio(genre, filters=None):  # TODO
-    print(genre)
-    return request_and_parse(genre['tracklist'])['data']
+async def get_genre_radio(session, tracklist, filters=None):  # TODO
+    print(tracklist)
+    return (await request_and_parse(session, tracklist))['data']
 
 
-def get_genre_list():
+async def get_genre_list():
     url = "https://api.deezer.com/genre/0/radios"
-    return request_and_parse(url)['data']
+    with aiohttp.ClientSession() as session:
+        result = (await request_and_parse(session, url))['data']
+        await session.close()
+        return result
 
 
-def get_random_word():
+async def get_random_word(session):
     url = "https://random-word-api.herokuapp.com/word?number=1"
-    return request_and_parse(url)[0]
+    return (await request_and_parse(session, url))[0]
 
 
-def request_and_parse(url):
-    response = requests.get(url)
-    if response.status_code is 200:
-        return json.loads(response.text)
-    else:
-        raise DeezerApiResponseException
+async def request_and_parse(session, url):
+    while True:
+        async with session.get(url) as response:
+            if response.status is 200:
+                result = json.loads(await response.text())
+                if 'error' not in result:
+                    return result
+                else:
+                    await asyncio.sleep(1)
+            else:
+                raise DeezerApiResponseException
 
 
 class DeezerTrack:
 
-    def __init__(self, track):
+    def __init__(self):
+        self.title = ""
+        self.album = ""
+        self.cover = ""
+        self.download_url = ""
+        self.contributors = []
+
+    @classmethod
+    async def create(cls, track, session):
+        self = DeezerTrack()
         self.title = track['title']
         self.album = track['album']['title']
         self.cover = track['album']['cover_big']
         self.download_url = track['preview']
-
-        response = requests.get("https://api.deezer.com/artist/" + str(track['artist']['id']))
-        artist = json.loads(response.text)
-        self.contributors = []
-        self.contributors.append(DeezerArtist(
-            artist['name'],
-            artist['picture_medium'],
-            artist['nb_fan'],
-            artist['nb_album']))
-        if 'contributors' in track:
-            for a in track['contributors']:
-                if a['name'] is not self.contributors[0].name:
-                    response = requests.get("https://api.deezer.com/artist/" + str(a['id']))
-                    artist = json.loads(response.text)
-                    self.contributors.append(Artist(
+        quota_limit = True
+        while quota_limit:
+            async with session.get("https://api.deezer.com/artist/" + str(track['artist']['id'])) as response:
+                artist = json.loads(await response.text())
+                if 'error' not in artist:
+                    self.contributors = []
+                    self.contributors.append(DeezerArtist(
                         artist['name'],
                         artist['picture_medium'],
                         artist['nb_fan'],
                         artist['nb_album']))
+                    quota_limit = False
+                else:
+                    await asyncio.sleep(1)
+        if 'contributors' in track:
+            for a in track['contributors']:
+                if a['name'] is not self.contributors[0].name:
+                    quota_limit = True
+                    while quota_limit:
+                        async with session.get("https://api.deezer.com/artist/" + str(a['id'])) as response:
+                            artist = json.loads(await response.text())
+                            if 'error' not in artist:
+                                self.contributors.append(Artist(
+                                    artist['name'],
+                                    artist['picture_medium'],
+                                    artist['nb_fan'],
+                                    artist['nb_album']))
+                                quota_limit = False
+                            else:
+                                await asyncio.sleep(1)
+        return self
 
     def toJSON(self):
         result = {
@@ -127,7 +177,7 @@ class DeezerArtist:
         self.albums = albums
 
 
-def save_song(track):
+def save_song(track): #TODO must be async......
     song = Song.objects.filter(download_url=track.download_url)
     if not Song.objects.filter(download_url=track.download_url).exists():
         album, _ = Album.objects.get_or_create(

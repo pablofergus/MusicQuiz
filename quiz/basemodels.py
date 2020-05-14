@@ -133,6 +133,7 @@ class GameInfo(models.Model):
     num_answers = models.IntegerField(default=0)
     name = models.CharField(max_length=50)
     settings = models.OneToOneField('quiz.GameSettings', on_delete=models.CASCADE)
+    round = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
@@ -144,6 +145,8 @@ class GameInfo(models.Model):
             "num_answers": self.num_answers,
             "name": self.name,
             "players": [],
+            "round": self.round,
+            "total_rounds": self.settings.rounds,
         }
         if self.track:
             result["track"] = self.track.toJSON()

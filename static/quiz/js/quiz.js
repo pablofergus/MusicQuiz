@@ -35,7 +35,8 @@ $(document).ready(function() {
         titleSpan = $("#title"),
         coverSpan = $("#track-cover"),
         userInput = $("#useranswer"),
-        timer = $("#currentTime"),
+        timer = $("#current-time"),
+        roundSpan = $("#current-round"),
         pauseButton = $('#pause'),
         volumeSlider = $("#volume"),
         gameSettingsButton = $("#game-settings-button"),
@@ -170,7 +171,9 @@ $(document).ready(function() {
      */
     function hideShow(toHide, toShow) {
         toHide.hide();
+        toHide.attr("class", "container invisible");
         toShow.show();
+        toShow.attr("class", "container");
     }
 
     // On received websocket message
@@ -181,8 +184,8 @@ $(document).ready(function() {
         if (typeof data.private != "undefined") {
             gameSettingsRounds.val(data.rounds);
             gameSettingsPrivate.prop("checked", data.private);
-            $("#game-settings-game_type option[text=" + data.game_type + "]").prop("selected", "selected");
-            $("#game-settings-genre option[text=" + data.genre + "]").prop("selected", "selected");
+            $("#game-settings-game_type option[text=\"" + data.game_type + "\"]").prop("selected", "selected");
+            $("#game-settings-genre option[text=\"" + data.genre + "\"]").prop("selected", "selected");
             gameSettingsWords.val(data.words);
         } else {
             let gameInfo = JSON.parse(data),
@@ -201,15 +204,16 @@ $(document).ready(function() {
                     break;
 
                 case GAME_STATES.LOADING:
+                    hideShow(gameContainer, readyButtonContainer);
                     readyButton.text("LOADING..."); //TODO show loading animation
                     gameContainer.show();
                     readyButtonContainer.hide();
                     break;
 
                 case GAME_STATES.GUESSING:
-                    gameContainer.show();
-                    readyButtonContainer.hide();
+                    hideShow(readyButtonContainer, gameContainer);
                     updatePlayers(gameInfo);
+                    roundSpan.text("Round " +  String(gameInfo.round) + "/" + String(gameInfo.total_rounds))
                     artistSpan.html("¿¿¿¿¿¿");
                     titleSpan.html("??????");
                     coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
@@ -222,16 +226,14 @@ $(document).ready(function() {
 
                 case GAME_STATES.POST_ANSWERS:
                     //TODO show loading animation
-                    gameContainer.show();
-                    readyButtonContainer.hide();
+                    hideShow(readyButtonContainer, gameContainer);
                     let userAnswer = userInput.val();
                     userInput.val("");
                     socket.send("ANSWER:" + userAnswer);
                     break;
 
                 case GAME_STATES.RESULTS:
-                    gameContainer.show();
-                    readyButtonContainer.hide();
+                    hideShow(readyButtonContainer, gameContainer);
                     updatePlayers(gameInfo);
                     artistSpan.html(track.artists[0].name);
                     titleSpan.html(track.title);
