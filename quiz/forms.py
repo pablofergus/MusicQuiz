@@ -5,13 +5,23 @@ from quiz.models import Game, GameInfo, GameSettings, GameTypes, Genre
 
 
 class CustomGameCreationForm(forms.Form):
-    name = forms.CharField(label='Name', min_length=4, max_length=20,
-                           widget=forms.TextInput(attrs={'autocomplete': 'nope'}))
-    private = forms.BooleanField(label="Private", required=False)
+    name = forms.CharField(
+        label='Name',
+        min_length=4,
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            'autocomplete': 'nope',
+        }),
+    )
+    private = forms.BooleanField(
+        label="Private",
+        required=False,
+    )
     password = forms.CharField(
         label='Password (if private)',
         widget=forms.PasswordInput(attrs={'autocomplete': 'nope'}),
-        required=False)
+        required=False,
+    )
 
     def clean(self):
         private = self.cleaned_data.get('private', False)
@@ -31,7 +41,9 @@ class CustomGameCreationForm(forms.Form):
     def save(self, commit=True):
         settings = GameSettings.objects.create(
             private=self.cleaned_data['private'],
-            password=self.cleaned_data['password']
+            password=self.cleaned_data['password'],
+            game_type=GameTypes.objects.first(),
+            genre=Genre.objects.first(),
         )
         info = GameInfo.objects.create(name=self.cleaned_data['name'], settings=settings)
         game = Game.objects.create(info=info)
@@ -46,12 +58,40 @@ TITLE_CHOICES = [
 
 
 class SettingsForm(forms.Form):
-    rounds = forms.IntegerField(label="Rounds", min_value=1, max_value=50, widget=forms.NumberInput(attrs={'type':'range', 'step': '1'}))
-    private = forms.BooleanField(label="Private", required=False, widget=forms.CheckboxInput())
+    rounds = forms.IntegerField(
+        label="Rounds",
+        min_value=1,
+        max_value=50,
+        widget=forms.NumberInput(
+            attrs={
+                'type': 'range',
+                'step': '1',
+            }),
+    )
+    private = forms.BooleanField(
+        label="Private",
+        required=False,
+        widget=forms.CheckboxInput(),
+    )
     password = forms.CharField(
         label='Password (if private)',
-        widget=forms.PasswordInput(attrs={'autocomplete': 'nope'}),
-        required=False)
-    game_type = forms.ModelChoiceField(label="Game type", queryset=GameTypes.objects.all())
-    genre = forms.ModelChoiceField(label="Game type", queryset=Genre.objects.all())
-    words = forms.CharField(label="Search terms (separated with ,)", widget=forms.Textarea(), required=False)
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'autocomplete': 'nope'
+        }),
+    )
+    game_type = forms.ModelChoiceField(
+        label="Game type",
+        queryset=GameTypes.objects.all(),
+        empty_label=None,
+    )
+    genre = forms.ModelChoiceField(
+        label="Genre",
+        queryset=Genre.objects.all(),
+        empty_label=None,
+    )
+    words = forms.CharField(
+        label="Search terms (separated with ,)",
+        widget=forms.Textarea(),
+        required=False,
+    )

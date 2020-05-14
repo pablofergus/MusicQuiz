@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncJsonWebsocketConsumer, WebsocketConsumer
 
 from users.models import User
-from .models import Game
+from .models import Game, GameTypes, Genre
 from quiz.gamestates import GameStates
 
 
@@ -12,6 +12,8 @@ class UserMessages:
     READY = "READY"
     UNREADY = "UNREADY"
     ANSWER = "ANSWER:"
+    REQUESTSETTINGS = "REQUEST SETTINGS"
+    SETTINGS = "SETTINGS:"
 
 
 class QuizConsumer(AsyncJsonWebsocketConsumer):
@@ -27,8 +29,8 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
             try:
                 game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
                 if game:
-                    # if game.info.settings.private: TODO gotta check for password for private games
-                    # authorized = game.check_password()
+                    #if game.info.settings.private: TODO introduce password check if private game
+                    #    authorized = game.check_password()
                     await game.add_player(self.channel_name, self.scope['user'].username)
                     if not game.running:
                         await game.run()
@@ -47,6 +49,23 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
 
         if text_data == UserMessages.RESUME:
             self.game_state = GameStates.GUESSING
+
+        if text_data == UserMessages.REQUESTSETTINGS:
+            game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+            await self.send(json.dumps(game.info.settings.toJSON()))
+
+        if text_data.startswith(UserMessages.SETTINGS):
+            game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+            settings = game.info.settings
+            new_settings = json.loads(text_data[len(UserMessages.SETTINGS):])
+            settings.rounds = new_settings['rounds']
+            settings.words = new_settings['words']
+            settings.private = new_settings['private']
+            settings.game_type = GameTypes.objects.filter(name=new_settings['game_type']).first()
+            settings.genre = Genre.objects.filter(name=new_settings['genre']).first()
+            game.set_password(new_settings['password'])
+            settings.save()
+            print("saved")
 
         if text_data == UserMessages.READY or text_data == UserMessages.UNREADY:
             p = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"]).info.players.filter(
@@ -75,7 +94,7 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
                 game.info.save(update_fields=['num_answers'])
                 if game.info.num_answers == game.info.players.count():
                     print("gottem all")
-                    return await game.run_after_posted()
+                    return await game.run()
 
     async def disconnect(self, code):
         """

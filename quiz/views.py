@@ -2,16 +2,16 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render
 
 from quiz.forms import CustomGameCreationForm, SettingsForm
-from quiz.models import Game, GameInfo
+from quiz.models import Game
 from users.forms import CustomAuthenticationForm, CustomUserCreationForm
 
 
 def index(request):
     games = [g.toJSON() for g in Game.objects.all()]
-    rform = CustomUserCreationForm().as_p()
-    aform = CustomAuthenticationForm().as_p()
-    gform = CustomGameCreationForm().as_p()
-    sform = SettingsForm().as_p()
+    rform = CustomUserCreationForm(auto_id='register-%s').as_p()
+    aform = CustomAuthenticationForm(auto_id='login-%s').as_p()
+    gform = CustomGameCreationForm(auto_id='game-creation-%s').as_p()
+    sform = SettingsForm(auto_id='game-settings-%s').as_p()
     # if request.user.is_authenticated:
     #    track, song = get_random_track()
     #    request.user.song_history.add(song)
@@ -26,11 +26,11 @@ def index(request):
 
 
 def lobby(request, game_id):
-    rform = CustomUserCreationForm().as_p()
-    aform = CustomAuthenticationForm().as_p()
-    gform = CustomGameCreationForm().as_p()
+    rform = CustomUserCreationForm(auto_id='register-%s').as_p()
+    aform = CustomAuthenticationForm(auto_id='login-%s').as_p()
+    gform = CustomGameCreationForm(auto_id='game-creation-%s').as_p()
+    sform = SettingsForm(auto_id='game-settings-%s').as_p()
     game = Game.objects.get(pk=game_id)
-    sform = SettingsForm().as_p()
     context = {
         'game': game,
         'gform': gform,

@@ -37,7 +37,13 @@ $(document).ready(function() {
         userInput = $("#useranswer"),
         timer = $("#currentTime"),
         pauseButton = $('#pause'),
-        volumeSlider = $("#volume");
+        volumeSlider = $("#volume"),
+        gameSettingsButton = $("#game-settings-button"),
+        settingsForm = $("#game-settings-form"),
+        gameSettingsRounds = $("#game-settings-rounds"),
+        gameSettingsPrivate = $("#game-settings-private"),
+        gameSettingsPassword = $("#game-settings-password"),
+        gameSettingsWords = $("#game-settings-words");
 
     console.log(socketUrl);
     const socket = new WebSocket(socketUrl);
@@ -140,6 +146,23 @@ $(document).ready(function() {
         }
     }
 
+    settingsForm.submit(function() {
+        let settings = {
+            rounds: gameSettingsRounds.val(),
+            private: gameSettingsPrivate.is(":checked"),
+            password: gameSettingsPassword.val(),
+            game_type: $("#game-settings-game_type option:selected").text(),
+            genre: $("#game-settings-genre option:selected").text(),
+            words: gameSettingsWords.val(),
+        };
+        socket.send("SETTINGS:" + JSON.stringify(settings));
+        return false;
+    });
+
+    gameSettingsButton.click(function() {
+        socket.send("REQUEST SETTINGS");
+    });
+
     /**
      * Just hides one element and shows another, to clean up code.
      * @param toHide Element to hide.
@@ -153,81 +176,92 @@ $(document).ready(function() {
     // On received websocket message
     socket.onmessage = function message(event) {
         // Parse de incoming data
-        let data = JSON.parse(event.data),
-            gameInfo = JSON.parse(data),
-            track = gameInfo.track;
-        console.log(gameInfo); // TODO just for debug
-        gameState = gameInfo.game_state;
+        let data = JSON.parse(event.data);
 
-        // State machine
-        switch (gameState) {
-            case GAME_STATES.WAITING_IN_LOBBY:
-                hideShow(gameContainer, readyButtonContainer);
-                break;
+        if (typeof data.private != "undefined") {
+            gameSettingsRounds.val(data.rounds);
+            gameSettingsPrivate.prop("checked", data.private);
+            $("#game-settings-game_type option[text=" + data.game_type + "]").prop("selected", "selected");
+            $("#game-settings-genre option[text=" + data.genre + "]").prop("selected", "selected");
+            gameSettingsWords.val(data.words);
+        } else {
+            let gameInfo = JSON.parse(data),
+                track = gameInfo.track;
+            console.log(gameInfo); // TODO just for debug
+            gameState = gameInfo.game_state;
 
-            case GAME_STATES.READY:
-                hideShow(gameContainer, readyButtonContainer);
-                break;
+            // State machine
+            switch (gameState) {
+                case GAME_STATES.WAITING_IN_LOBBY:
+                    hideShow(gameContainer, readyButtonContainer);
+                    break;
 
-            case GAME_STATES.LOADING:
-                readyButton.text("LOADING..."); //TODO show loading animation
-                gameContainer.show();
-                readyButtonContainer.hide();
-                break;
+                case GAME_STATES.READY:
+                    hideShow(gameContainer, readyButtonContainer);
+                    break;
 
-            case GAME_STATES.GUESSING:
-                gameContainer.show();
-                readyButtonContainer.hide();
-                updatePlayers(gameInfo);
-                artistSpan.html("¿¿¿¿¿¿");
-                titleSpan.html("??????");
-                coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
-                audioElement.setAttribute('src', track.download_url);
-                coverSpan.css({
-                    "-webkit-filter": "blur(50px)",
-                    "filter": "blur(50px)"
-                });
-                break;
+                case GAME_STATES.LOADING:
+                    readyButton.text("LOADING..."); //TODO show loading animation
+                    gameContainer.show();
+                    readyButtonContainer.hide();
+                    break;
 
-            case GAME_STATES.POST_ANSWERS:
-                //TODO show loading animation
-                gameContainer.show();
-                readyButtonContainer.hide();
-                let userAnswer = userInput.val();
-                userInput.val("");
-                socket.send("ANSWER:" + userAnswer);
-                break;
+                case GAME_STATES.GUESSING:
+                    gameContainer.show();
+                    readyButtonContainer.hide();
+                    updatePlayers(gameInfo);
+                    artistSpan.html("¿¿¿¿¿¿");
+                    titleSpan.html("??????");
+                    coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
+                    audioElement.setAttribute('src', track.download_url);
+                    coverSpan.css({
+                        "-webkit-filter": "blur(50px)",
+                        "filter": "blur(50px)"
+                    });
+                    break;
 
-            case GAME_STATES.RESULTS:
-                gameContainer.show();
-                readyButtonContainer.hide();
-                updatePlayers(gameInfo);
-                artistSpan.html(track.artists[0].name);
-                titleSpan.html(track.title);
-                coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
-                $({blurRadius: 50}).animate({blurRadius: 0}, {
-                    duration: 2000,
-                    easing: 'swing',
-                    step: function() {
-                        coverSpan.css({
-                            "-webkit-filter": "blur("+this.blurRadius+"px)",
-                            "filter": "blur("+this.blurRadius+"px)"
-                        });
-                    }
-                });
-                audioElement.setAttribute('src', track.download_url);
-                setTimeout(() => { console.log("animated"); }, 2000);
-                coverSpan.css({
-                    "-webkit-filter": "blur(0px);",
-                    "filter": "blur(0px);"
-                });
-                //$("#score-username").html("6");
-                break;
+                case GAME_STATES.POST_ANSWERS:
+                    //TODO show loading animation
+                    gameContainer.show();
+                    readyButtonContainer.hide();
+                    let userAnswer = userInput.val();
+                    userInput.val("");
+                    socket.send("ANSWER:" + userAnswer);
+                    break;
 
-            default: // This should never happen
-                console.log("PLZ TO HELP");
-                console.log(gameState);
-                break;
+                case GAME_STATES.RESULTS:
+                    gameContainer.show();
+                    readyButtonContainer.hide();
+                    updatePlayers(gameInfo);
+                    artistSpan.html(track.artists[0].name);
+                    titleSpan.html(track.title);
+                    coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
+                    $({blurRadius: 50}).animate({blurRadius: 0}, {
+                        duration: 2000,
+                        easing: 'swing',
+                        step: function () {
+                            coverSpan.css({
+                                "-webkit-filter": "blur(" + this.blurRadius + "px)",
+                                "filter": "blur(" + this.blurRadius + "px)"
+                            });
+                        }
+                    });
+                    audioElement.setAttribute('src', track.download_url);
+                    setTimeout(() => {
+                        console.log("animated");
+                    }, 2000);
+                    coverSpan.css({
+                        "-webkit-filter": "blur(0px);",
+                        "filter": "blur(0px);"
+                    });
+                    //$("#score-username").html("6");
+                    break;
+
+                default: // This should never happen
+                    console.log("PLZ TO HELP");
+                    console.log(gameState);
+                    break;
+            }
         }
     };
 

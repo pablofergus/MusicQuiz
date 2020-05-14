@@ -7,14 +7,14 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form action="new-room/" id="login-form" method="post">
+            <form action="" id="game-settings-form" method="post">
                 {% csrf_token %}
                 <div class="modal-body">
                     {{ sform }}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <input type="submit" value="Save" class="btn btn-primary" />
+                    <input type="submit" id="settings-submit" value="Save" class="btn btn-primary" /><!--type="submit"-->
                 </div>
             </form>
         </div>

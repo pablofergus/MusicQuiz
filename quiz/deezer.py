@@ -52,6 +52,7 @@ def get_search(query, filters=None):
 
 
 def get_genre_radio(genre, filters=None):  # TODO
+    print(genre)
     return request_and_parse(genre['tracklist'])['data']
 
 

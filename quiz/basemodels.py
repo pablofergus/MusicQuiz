@@ -7,7 +7,11 @@ from quiz.gamestates import GameStates
 class Genre(models.Model):
     name = models.CharField(max_length=128)
     deezer_id = models.IntegerField()
+    tracklist = models.URLField(null=True, blank=True)
     picture = models.URLField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Artist(models.Model):
@@ -99,9 +103,26 @@ class GameSettings(models.Model):
     rounds = models.IntegerField(default=15)
     private = models.BooleanField(default=False)
     password = models.CharField(max_length=128)
-    game_type = models.ManyToManyField('quiz.GameTypes')
-    genre = models.ManyToManyField('quiz.Genre')
+    game_type = models.ForeignKey(
+        'quiz.GameTypes',
+        on_delete=models.CASCADE,
+        default=GameTypes.objects.first(),
+    )
+    genre = models.ForeignKey(
+        'quiz.Genre',
+        on_delete=models.CASCADE,
+        default=GameTypes.objects.first(),
+    )
     words = models.TextField(blank=True)
+
+    def toJSON(self):
+        return {
+            'rounds': self.rounds,
+            'private': self.private,
+            'game_type': str(self.game_type),
+            'genre': str(self.genre),
+            'words': self.words,
+        }
 
 
 class GameInfo(models.Model):
