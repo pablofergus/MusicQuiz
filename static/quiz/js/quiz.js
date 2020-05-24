@@ -20,6 +20,7 @@ $(document).ready(function() {
         socketUrl = 'ws://' + window.location.host + '/ws/quiz' + window.location.pathname,
         gameState = GAME_STATES.WAITING_IN_LOBBY,
         pause = false,
+        firstMessage = true,
         ready = false;
     audioElement.muted = true;
 
@@ -136,8 +137,8 @@ $(document).ready(function() {
      */
     function updatePlayers(gameInfo) {
         let userhtml = "";
-        for(let i = 0; i < gameInfo.num_players; i++) {
-            userhtml += "<div class=\"col-lg-" + String(Math.floor(12/gameInfo.num_players)) + " col-md-6 mb-md-4\">" +
+        for(let i = 0; i < gameInfo.players.length; i++) {
+            userhtml += "<div class=\"col-lg-" + String(Math.floor(12/gameInfo.players.length)) + " col-md-6 mb-md-4\">" +
                     "<div class=\"box featured\" data-aos=\"zoom-in\">" +
                         "<h3>" + String(gameInfo.players[i].user.username) + "</h3>" +
                         "<h4>" + String(gameInfo.players[i].points) + "<span> point" + (gameInfo.players[i].points === 1 ? "" : "s") + "</span></h4>" +
@@ -213,15 +214,18 @@ $(document).ready(function() {
                 case GAME_STATES.GUESSING:
                     hideShow(readyButtonContainer, gameContainer);
                     updatePlayers(gameInfo);
-                    roundSpan.text("Round " +  String(gameInfo.round) + "/" + String(gameInfo.total_rounds))
-                    artistSpan.html("¿¿¿¿¿¿");
-                    titleSpan.html("??????");
-                    coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
-                    audioElement.setAttribute('src', track.download_url);
-                    coverSpan.css({
-                        "-webkit-filter": "blur(50px)",
-                        "filter": "blur(50px)"
-                    });
+                    if (gameInfo.state_change || firstMessage) {
+                        console.log("state change: " + gameInfo.state_change)
+                        roundSpan.text("Round " + String(gameInfo.round) + "/" + String(gameInfo.total_rounds))
+                        artistSpan.html("¿¿¿¿¿¿");
+                        titleSpan.html("??????");
+                        coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
+                        audioElement.setAttribute('src', track.download_url);
+                        coverSpan.css({
+                            "-webkit-filter": "blur(50px)",
+                            "filter": "blur(50px)"
+                        });
+                    }
                     break;
 
                 case GAME_STATES.POST_ANSWERS:
@@ -235,27 +239,29 @@ $(document).ready(function() {
                 case GAME_STATES.RESULTS:
                     hideShow(readyButtonContainer, gameContainer);
                     updatePlayers(gameInfo);
-                    artistSpan.html(track.artists[0].name);
-                    titleSpan.html(track.title);
-                    coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
-                    $({blurRadius: 50}).animate({blurRadius: 0}, {
-                        duration: 2000,
-                        easing: 'swing',
-                        step: function () {
-                            coverSpan.css({
-                                "-webkit-filter": "blur(" + this.blurRadius + "px)",
-                                "filter": "blur(" + this.blurRadius + "px)"
-                            });
-                        }
-                    });
-                    audioElement.setAttribute('src', track.download_url);
-                    setTimeout(() => {
-                        console.log("animated");
-                    }, 2000);
-                    coverSpan.css({
-                        "-webkit-filter": "blur(0px);",
-                        "filter": "blur(0px);"
-                    });
+                    if (gameInfo.state_change || firstMessage) {
+                        artistSpan.html(track.artists[0].name);
+                        titleSpan.html(track.title);
+                        coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
+                        $({blurRadius: 50}).animate({blurRadius: 0}, {
+                            duration: 2000,
+                            easing: 'swing',
+                            step: function () {
+                                coverSpan.css({
+                                    "-webkit-filter": "blur(" + this.blurRadius + "px)",
+                                    "filter": "blur(" + this.blurRadius + "px)"
+                                });
+                            }
+                        });
+                        audioElement.setAttribute('src', track.download_url);
+                        setTimeout(() => {
+                            console.log("animated");
+                        }, 2000);
+                        coverSpan.css({
+                            "-webkit-filter": "blur(0px);",
+                            "filter": "blur(0px);"
+                        });
+                    }
                     //$("#score-username").html("6");
                     break;
 
@@ -265,6 +271,7 @@ $(document).ready(function() {
                     break;
             }
         }
+        firstMessage = false;
     };
 
     document.ws = socket; // TODO debug

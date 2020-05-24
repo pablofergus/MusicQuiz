@@ -1,5 +1,6 @@
 from django.db import models
 from django.urls import reverse
+from django.utils.deconstruct import deconstructible
 
 from quiz.gamestates import GameStates
 
@@ -15,7 +16,7 @@ class Genre(models.Model):
 
 
 class Artist(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=300)
     picture = models.URLField()
     fans = models.IntegerField(null=True, blank=True)
     albums = models.IntegerField(null=True, blank=True)
@@ -32,7 +33,7 @@ class Artist(models.Model):
 
 
 class Album(models.Model):
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=300)
     cover = models.URLField()
 
     def __str__(self):
@@ -44,7 +45,7 @@ class Album(models.Model):
 
 class Song(models.Model):
     artists = models.ManyToManyField(Artist)
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=300)
     download_url = models.URLField()
     saved_by = models.ManyToManyField('users.User')
     album = models.ForeignKey('quiz.Album', on_delete=models.CASCADE)
@@ -54,6 +55,7 @@ class Song(models.Model):
 
     def toJSON(self):
         result = {
+            "id": self.id,
             "title": self.title,
             "download_url": self.download_url,
             "album": {"title": self.album.title, "cover": self.album.cover,},
@@ -91,6 +93,7 @@ class Player(models.Model):
         }
 
 
+#@deconstructible
 class GameTypes(models.Model):
     type_id = models.IntegerField()
     name = models.CharField(max_length=128)
@@ -106,12 +109,16 @@ class GameSettings(models.Model):
     game_type = models.ForeignKey(
         'quiz.GameTypes',
         on_delete=models.CASCADE,
-        default=GameTypes.objects.first(),
+        #default=GameTypes.objects.first(),
+        null=True,
+        blank=True,
     )
     genre = models.ForeignKey(
         'quiz.Genre',
         on_delete=models.CASCADE,
-        default=GameTypes.objects.first(),
+        #default=GameTypes.objects.first(),
+        null=True,
+        blank=True,
     )
     words = models.TextField(blank=True)
 

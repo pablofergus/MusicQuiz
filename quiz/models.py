@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from fuzzywuzzy import fuzz
 from math import ceil
 
-from quiz.deezer import get_genre_list, get_genre_radio, get_enough_tracks
+from quiz.deezer import get_genre_list, get_enough_tracks
 from quiz.basemodels import *
 from users.models import User
 
@@ -92,18 +92,21 @@ class Game(models.Model):
         print("Stopping thread...")
         asyncio.Task.current_task().cancel()
 
-    async def update_all_clients(self):
+    async def update_all_clients(self, state_change=True):
         """
         Parses game info and sends it to each players channel.
         """
+        self.info.num_players = self.info.players.count()
         self.info.save()
         for p in self.info.players.all():
             channel_layer = get_channel_layer()
+            info = self.info.toJSON()
+            info["state_change"] = state_change
             await channel_layer.send(
                 p.channel_name,
                 {
                     "type": "update.game.info",
-                    "text": self.info.toJSON()
+                    "text": info
                 }
             )
 
@@ -129,7 +132,7 @@ class Game(models.Model):
 
         self.info.num_players = self.info.players.count()
         print(player.user.username + " has joined the game, number " + str(self.info.num_players))
-        return await self.update_all_clients()
+        return await self.update_all_clients(state_change=False)
 
     async def remove_player(self, channel_name):
         """
@@ -147,7 +150,7 @@ class Game(models.Model):
             print("Destroying the game :>")
             Game.stop()
         else:
-            await self.update_all_clients()
+            await self.update_all_clients(state_change=False)
 
     def add_to_song_history(self):
         """
@@ -157,7 +160,8 @@ class Game(models.Model):
             if p.user.username is not 'AnonymousUser':
                 p.user.song_history.add(Song.objects.filter(download_url=self.info.track.download_url).first())
 
-    async def update_genre_list(self):
+    async def update_genre_list(
+            self):  # TODO genres have names and ids, and manytomany radios. Make new model of radios.
         genres = await get_genre_list()
         self.info = Game.objects.get(pk=self.id).info
         Genre.objects.all().delete()
@@ -211,7 +215,7 @@ class Game(models.Model):
 
         if self.info.settings.game_type.type_id is 1:
             # genres = get_genre_list()
-            print("loading radio...")
+            print("loading radio " + self.info.settings.genre.name)
             songs = await get_enough_tracks(self.info.settings.rounds, genre=self.info.settings.genre.tracklist)
             self.radio.add(*songs)
         self.info.game_state = GameStates.GUESSING
@@ -232,8 +236,8 @@ class Game(models.Model):
         self.info.num_answers = 0
         self.info.save()
 
-        self.info.game_state = GameStates.POST_ANSWERS
         await asyncio.sleep(30)
+        self.info.game_state = GameStates.POST_ANSWERS
 
     async def post_answers(self):
         """
@@ -281,8 +285,8 @@ class Game(models.Model):
             p.save()
 
         await self.update_all_clients()
-        self.info.game_state = GameStates.GUESSING
         await asyncio.sleep(30)
+        self.info.game_state = GameStates.GUESSING
 
     async def victory(self):
         await asyncio.sleep(30)
