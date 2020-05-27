@@ -16,11 +16,11 @@ $(document).ready(function() {
      */
     let audioElement = document.createElement('audio'),
         volume = 0.3,
-        slider = document.getElementById("volume-slider"),
+        //slider = document.getElementById("volume-slider"),
         socketUrl = 'ws://' + window.location.host + '/ws/quiz' + window.location.pathname,
         gameState = GAME_STATES.WAITING_IN_LOBBY,
         pause = false,
-        firstMessage = true,
+        messageCount = 0,
         ready = false;
     audioElement.muted = true;
 
@@ -31,11 +31,11 @@ $(document).ready(function() {
     const gameContainer =  $("#game-container"),
         readyButtonContainer = $("#readybutton-container"),
         readyButton = $("#ready-button"),
-        readySpan = $("ready"),
+        readySpan = $("#ready"),
         artistSpan = $("#artist"),
         titleSpan = $("#title"),
         coverSpan = $("#track-cover"),
-        userInput = $("#useranswer"),
+        userInput = $("#playerinput"),
         timer = $("#current-time"),
         roundSpan = $("#current-round"),
         pauseButton = $('#pause'),
@@ -121,8 +121,8 @@ $(document).ready(function() {
             ready = !ready;
             let infos = ready ? "READY" : "UNREADY";
             socket.send(infos);
-            let text = ready ? "Ready up" : "Unready";
-            readySpan.text(text)
+        } else {
+            socket.send("JOIN")
         }
     });
 
@@ -137,15 +137,18 @@ $(document).ready(function() {
      */
     function updatePlayers(gameInfo) {
         let userhtml = "";
-        for(let i = 0; i < gameInfo.players.length; i++) {
+        gameInfo.players.forEach(function(p, i) {
+            let divClass = $("#user-menu").text().startsWith(p.user.username) ? "box featured" : "box";
             userhtml += "<div class=\"col-lg-" + String(Math.floor(12/gameInfo.players.length)) + " col-md-6 mb-md-4\">" +
-                    "<div class=\"box featured\" data-aos=\"zoom-in\">" +
-                        "<h3>" + String(gameInfo.players[i].user.username) + "</h3>" +
-                        "<h4>" + String(gameInfo.players[i].points) + "<span> point" + (gameInfo.players[i].points === 1 ? "" : "s") + "</span></h4>" +
+                    "<div class=\"" + divClass + "\" data-aos=\"zoom-in\">" +
+                        (p.answer !== "" ? "<h4 id=\"playeranswer\">" + p.answer + "</h4>" : "") +
+                        "<h3>" + p.user.username + "</h3>" +
+                        "<h4 id=\"userpoints\">" + String(p.points) + "<span> point" + (p.points === 1 ? "" : "s") + "</span></h4>" +
                     "</div>" +
                 "</div>";
             $("#user-scores").html(userhtml);
-        }
+        });
+
     }
 
     settingsForm.submit(function() {
@@ -188,90 +191,98 @@ $(document).ready(function() {
             $("#game-settings-game_type option[text=\"" + data.game_type + "\"]").prop("selected", "selected");
             $("#game-settings-genre option[text=\"" + data.genre + "\"]").prop("selected", "selected");
             gameSettingsWords.val(data.words);
+
         } else {
             let gameInfo = JSON.parse(data),
                 track = gameInfo.track;
             console.log(gameInfo); // TODO just for debug
             gameState = gameInfo.game_state;
 
-            // State machine
-            switch (gameState) {
-                case GAME_STATES.WAITING_IN_LOBBY:
-                    hideShow(gameContainer, readyButtonContainer);
-                    break;
+            if (gameState !== GAME_STATES.WAITING_IN_LOBBY && messageCount === 0) { // Client must interact for autoplay to work
+                readySpan.text("Join active game");
+            } else {
 
-                case GAME_STATES.READY:
-                    hideShow(gameContainer, readyButtonContainer);
-                    break;
+                // State machine
+                switch (gameState) {
+                    case GAME_STATES.WAITING_IN_LOBBY:
+                        hideShow(gameContainer, readyButtonContainer);
+                        updatePlayers(gameInfo);
+                        let text = !ready ? "Ready up" : "Unready";
+                        readySpan.text(text);
+                        break;
 
-                case GAME_STATES.LOADING:
-                    hideShow(gameContainer, readyButtonContainer);
-                    readyButton.text("LOADING..."); //TODO show loading animation
-                    gameContainer.show();
-                    readyButtonContainer.hide();
-                    break;
+                    case GAME_STATES.READY:
+                        hideShow(gameContainer, readyButtonContainer);
+                        break;
 
-                case GAME_STATES.GUESSING:
-                    hideShow(readyButtonContainer, gameContainer);
-                    updatePlayers(gameInfo);
-                    if (gameInfo.state_change || firstMessage) {
-                        console.log("state change: " + gameInfo.state_change)
-                        roundSpan.text("Round " + String(gameInfo.round) + "/" + String(gameInfo.total_rounds))
-                        artistSpan.html("¿¿¿¿¿¿");
-                        titleSpan.html("??????");
-                        coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
-                        audioElement.setAttribute('src', track.download_url);
-                        coverSpan.css({
-                            "-webkit-filter": "blur(50px)",
-                            "filter": "blur(50px)"
-                        });
-                    }
-                    break;
+                    case GAME_STATES.LOADING:
+                        hideShow(gameContainer, readyButtonContainer);
+                        readyButton.text("LOADING..."); //TODO show loading animation
+                        hideShow(gameContainer, readyButtonContainer);
+                        break;
 
-                case GAME_STATES.POST_ANSWERS:
-                    //TODO show loading animation
-                    hideShow(readyButtonContainer, gameContainer);
-                    let userAnswer = userInput.val();
-                    userInput.val("");
-                    socket.send("ANSWER:" + userAnswer);
-                    break;
+                    case GAME_STATES.GUESSING:
+                        hideShow(readyButtonContainer, gameContainer);
+                        updatePlayers(gameInfo);
+                        if (gameInfo.state_change || messageCount === 1) {
+                            console.log("state change: " + gameInfo.state_change);
+                            roundSpan.text("Round " + String(gameInfo.round) + "/" + String(gameInfo.total_rounds));
+                            artistSpan.html("¿¿¿¿¿¿");
+                            titleSpan.html("??????");
+                            coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
+                            audioElement.setAttribute('src', track.download_url);
+                            coverSpan.css({
+                                "-webkit-filter": "blur(50px)",
+                                "filter": "blur(50px)"
+                            });
+                        }
+                        break;
 
-                case GAME_STATES.RESULTS:
-                    hideShow(readyButtonContainer, gameContainer);
-                    updatePlayers(gameInfo);
-                    if (gameInfo.state_change || firstMessage) {
-                        artistSpan.html(track.artists[0].name);
-                        titleSpan.html(track.title);
-                        coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
-                        $({blurRadius: 50}).animate({blurRadius: 0}, {
-                            duration: 2000,
-                            easing: 'swing',
-                            step: function () {
-                                coverSpan.css({
-                                    "-webkit-filter": "blur(" + this.blurRadius + "px)",
-                                    "filter": "blur(" + this.blurRadius + "px)"
-                                });
-                            }
-                        });
-                        audioElement.setAttribute('src', track.download_url);
-                        setTimeout(() => {
-                            console.log("animated");
-                        }, 2000);
-                        coverSpan.css({
-                            "-webkit-filter": "blur(0px);",
-                            "filter": "blur(0px);"
-                        });
-                    }
-                    //$("#score-username").html("6");
-                    break;
+                    case GAME_STATES.POST_ANSWERS:
+                        //TODO show loading animation
+                        hideShow(readyButtonContainer, gameContainer);
+                        let userAnswer = userInput.val();
+                        userInput.val("");
+                        socket.send("ANSWER:" + (userAnswer === undefined ? "" : userAnswer));
+                        break;
 
-                default: // This should never happen
-                    console.log("PLZ TO HELP");
-                    console.log(gameState);
-                    break;
+                    case GAME_STATES.RESULTS:
+                        hideShow(readyButtonContainer, gameContainer);
+                        updatePlayers(gameInfo);
+                        if (gameInfo.state_change || messageCount === 1) {
+                            artistSpan.html(track.artists[0].name);
+                            titleSpan.html(track.title);
+                            coverSpan.html("<img src=\"" + track.album.cover + "\" alt=\"cover\"/>");
+                            $({blurRadius: 50}).animate({blurRadius: 0}, {
+                                duration: 2000,
+                                easing: 'swing',
+                                step: function () {
+                                    coverSpan.css({
+                                        "-webkit-filter": "blur(" + this.blurRadius + "px)",
+                                        "filter": "blur(" + this.blurRadius + "px)"
+                                    });
+                                }
+                            });
+                            audioElement.setAttribute('src', track.download_url);
+                            setTimeout(() => {
+                                console.log("animated");
+                            }, 2000);
+                            coverSpan.css({
+                                "-webkit-filter": "blur(0px);",
+                                "filter": "blur(0px);"
+                            });
+                        }
+                        //$("#score-username").html("6");
+                        break;
+
+                    default: // This should never happen
+                        console.log("PLZ TO HELP");
+                        console.log(gameState);
+                        break;
+                }
             }
         }
-        firstMessage = false;
+        messageCount++;
     };
 
     document.ws = socket; // TODO debug

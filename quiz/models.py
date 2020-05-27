@@ -92,30 +92,35 @@ class Game(models.Model):
         print("Stopping thread...")
         asyncio.Task.current_task().cancel()
 
-    async def update_all_clients(self, state_change=True):
+    async def update_all_clients(self, state_change=True, join=False):
         """
         Parses game info and sends it to each players channel.
         """
         self.info.num_players = self.info.players.count()
         self.info.save()
+        channel_layer = get_channel_layer()
+        info = self.info.toJSON()
+        info["state_change"] = state_change
         for p in self.info.players.all():
-            channel_layer = get_channel_layer()
-            info = self.info.toJSON()
-            info["state_change"] = state_change
-            await channel_layer.send(
-                p.channel_name,
-                {
-                    "type": "update.game.info",
-                    "text": info
-                }
-            )
+            print(p.ready)
+            if self.info.game_state == GameStates.WAITING_IN_LOBBY or p.ready or join:
+                await channel_layer.send(
+                    p.channel_name,
+                    {
+                        "type": "update.game.info",
+                        "text": info,
+                    }
+                )
 
     async def add_player(self, channel_name, username):
         """
         Adds the user to the game, creating a player or re-adding him.
         """
+        a = ""
+        if self.info.game_state == GameStates.WAITING_IN_LOBBY:
+            a = "Not ready"
         user = User.objects.filter(username=username).first()
-        player, created = Player.objects.get_or_create(user=user)
+        player, created = Player.objects.get_or_create(user=user, answer=a) #clean old players
         self.info = Game.objects.get(pk=self.id).info
 
         if not created:
@@ -132,7 +137,7 @@ class Game(models.Model):
 
         self.info.num_players = self.info.players.count()
         print(player.user.username + " has joined the game, number " + str(self.info.num_players))
-        return await self.update_all_clients(state_change=False)
+        return await self.update_all_clients(state_change=False, join=True)
 
     async def remove_player(self, channel_name):
         """
@@ -193,6 +198,9 @@ class Game(models.Model):
 
     async def ready(self):
         print("Starting game...")
+        for p in self.info.players.all():  # After update clear answers
+            p.answer = ""
+            p.save()
         self.info = Game.objects.get(pk=self.id).info
         await self.update_all_clients()
         self.info.game_state = GameStates.LOADING
@@ -225,6 +233,10 @@ class Game(models.Model):
         Pops a track from the radio, and sets it as current track. After 30s passes to POST_ANSWERS.
         """
         self.info = Game.objects.get(pk=self.id).info
+
+        if not self.radio.all().first():
+            self.info.game_state = GameStates.VICTORY
+            return
 
         self.info.track = self.radio.all().first()
         self.info.track.save()
@@ -281,10 +293,12 @@ class Game(models.Model):
             p.points += points
             p.user.total_points += points
             p.user.save()
-            p.answer = ""
             p.save()
 
         await self.update_all_clients()
+        for p in self.info.players.all():  # After update clear answers
+            p.answer = ""
+            p.save()
         await asyncio.sleep(30)
         self.info.game_state = GameStates.GUESSING
 

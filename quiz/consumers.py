@@ -12,6 +12,7 @@ class UserMessages:
     READY = "READY"
     UNREADY = "UNREADY"
     ANSWER = "ANSWER:"
+    JOIN = "JOIN"
     REQUESTSETTINGS = "REQUEST SETTINGS"
     SETTINGS = "SETTINGS:"
 
@@ -74,12 +75,23 @@ class QuizConsumer(AsyncJsonWebsocketConsumer):
             if text_data == UserMessages.READY:
                 print(self.scope["user"].username + " is ready.")
                 p.ready = True
+                p.answer = "Ready"
             else:
                 print(self.scope["user"].username + " is unready.")
                 p.ready = False
+                p.answer = "Not ready"
             p.save()
             game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
             await game.run()
+
+        if text_data == UserMessages.JOIN:
+            game = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"])
+            p = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"]).info.players.filter(
+                user=User.objects.filter(username=self.scope["user"].username).first()
+            ).first()
+            p.ready = True
+            p.save()
+            await game.update_all_clients(state_change=False, join=True)
 
         if text_data.startswith(UserMessages.ANSWER):
             p = Game.objects.get(pk=self.scope["url_route"]["kwargs"]["stream"]).info.players.filter(

@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.core.validators import EMPTY_VALUES
 
 from quiz.models import Game, GameInfo, GameSettings, GameTypes, Genre
@@ -33,9 +34,9 @@ class CustomGameCreationForm(forms.Form):
 
     def clean_username(self):
         name = self.cleaned_data['name'].lower()
-        """r = GameInfo.objects.filter(name=name)
+        r = GameInfo.objects.filter(name=name)
         if r.count():
-            raise ValidationError("Username already exists")"""
+            raise ValidationError("Game name already exists")
         return name
 
     def save(self, commit=True):
@@ -61,7 +62,7 @@ class SettingsForm(forms.Form):
     rounds = forms.IntegerField(
         label="Rounds",
         min_value=1,
-        max_value=50,
+        max_value=25,
         widget=forms.NumberInput(
             attrs={
                 'type': 'range',

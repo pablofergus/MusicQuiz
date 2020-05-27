@@ -13,10 +13,10 @@
 					<li><a href="/">Rooms</a></li>
 					<li><a id="new-room-button" data-toggle="modal" href="" data-target="#new-room">Create Room</a></li>
                     {% if game %}
-					<li><a id="game-settings-button" data-toggle="modal" href="" data-target="#game-settings">Game Settings</a></li>
+					<li><a id="game-settings-button" data-toggle="modal" data-target="#game-settings">Game Settings</a></li>
                     {% endif %}
 					{% if user.is_authenticated %}
-						<li class="drop-down"><a href="">{{user}}</a>
+						<li class="drop-down" id="user-menu"><a href="">{{user}}</a>
 							<ul>
 								<li><a href="#">Drop Down 1</a></li>
 								<li class="drop-down"><a href="#">Drop Down 2</a>
